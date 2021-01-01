@@ -24,6 +24,7 @@ import net.runelite.client.util.Text;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.List;
 
 @PluginDescriptor(
@@ -72,6 +73,7 @@ public class Run4LessPlugin extends Plugin {
     private final ArrayListMultimap<String, Integer> indexes = ArrayListMultimap.create();
     public static RunnerStats stats = RunnerStats.load();
     public static final String setClient = "Set as Client";
+    boolean shouldSpam = true;
 
     @Override
     protected void startUp() throws Exception {
@@ -103,17 +105,38 @@ public class Run4LessPlugin extends Plugin {
     }
 
     @Subscribe(priority = -2)
-    public void onChatMessage(ChatMessage message){
+    public void onChatMessage(ChatMessage message) {
         FriendsChatManager manager = client.getFriendsChatManager();
-        if(manager != null && manager.getOwner().equalsIgnoreCase("Run4less")){
-            if(message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()){
+        if (manager != null && manager.getOwner().equalsIgnoreCase("Run4less")) {
+            System.out.println(message.getMessage());
+            if (message.getMessage().toLowerCase().contains("!bones ")) {
+                System.out.println("Ran bones command");
+                String cmd = message.getMessage().toLowerCase().split("!bones ")[1];
+                String[] temp = cmd.split(" ");
+                int rate = 0;
+                if (temp[0].equalsIgnoreCase("afk")) rate = 20000;
+                else if (temp[0].equalsIgnoreCase("tick")) rate = 18000;
+                else
+                    client.addChatMessage(message.getType(), message.getName(), "Invalid argument [" + temp[0] + "]. Options are [tick/afk]", message.getSender());
+
+                int qty = Integer.parseInt(temp[1]);
+                if (qty <= 0) {
+                    client.addChatMessage(message.getType(), message.getName(), "Invalid argument [" + temp[1] + "]. Options must be greater then 0", message.getSender());
+                    qty = 0;
+                }
+                DecimalFormat formatter = new DecimalFormat("#,###");
+                String price = formatter.format(Math.round(((float) qty / 26F) * rate));
+                client.addChatMessage(message.getType(), message.getName(), temp[0] + "ing " + temp[1] + " bones would be " + price, message.getSender());
+                System.out.println(temp[0] + "ing " + temp[1] + " bones would be " + price);
+            }
+            if (message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()) {
                 Widget tradingWith = client.getWidget(334, 30);
-                if(tradingWith != null) {
+                if (tradingWith != null) {
                     String rsn = tradingWith.getText().replace("Trading with:<br>", "");
                     Widget partnerTrades = client.getWidget(334, 29);
                     Widget offeredTrades = client.getWidget(334, 28);
 
-                    if(partnerTrades != null && offeredTrades != null) {
+                    if (partnerTrades != null && offeredTrades != null) {
                         int i = 0;
                         int coins = 0;
                         int notes = 0;
@@ -122,16 +145,16 @@ public class Run4LessPlugin extends Plugin {
                         String noted = "";
                         for (Widget w : partnerTrades.getChildren()) {
                             String text = w.getText();
-                            if(text.startsWith("Coins")){
-                                if(text.contains("(")) text = text.split("[(]")[1];
+                            if (text.startsWith("Coins")) {
+                                if (text.contains("(")) text = text.split("[(]")[1];
                                 else text = text.split("<col=ffffff> x <col=ffff00>")[1];
                                 text = text.replace(",", "").replace(")", "");
                                 coins += Integer.parseInt(text);
-                            } else if(text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")){
+                            } else if (text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")) {
                                 String[] temp = text.split("<col=ffffff> x <col=ffff00>");
                                 noted = temp[0];
                                 notes = Integer.parseInt(temp[1]);
-                            } else if(text.toLowerCase().contains("bones")){
+                            } else if (text.toLowerCase().contains("bones")) {
                                 qty--;
                             }
                         }
@@ -139,7 +162,7 @@ public class Run4LessPlugin extends Plugin {
                             if (w == null) continue;
                             System.out.println("[" + i++ + "]:" + w.getText());
                             String s = w.getText().toLowerCase();
-                            if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")){
+                            if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
                                 bones = w.getText();
                                 qty++;
                             }
@@ -149,23 +172,30 @@ public class Run4LessPlugin extends Plugin {
                 }
             }
             String sender = message.getName();
-            if(!sender.isEmpty()) {
+            if (!sender.isEmpty()) {
                 FriendsChatMember p = manager.findByName(sender);
-                if(p != null) {
+                if (p != null) {
                     FriendsChatRank rank = p.getRank();
                     if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner)
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager);
                 }
             }
         }
-        if(config.splitCCEnabled() && config.ccLines() > 0) {
+        if (config.splitCCEnabled() && config.ccLines() > 0) {
             final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
-            if(message.getType().equals(ChatMessageType.FRIENDSCHAT) && chat != null && !chat.isHidden()) {
+            if (message.getType().equals(ChatMessageType.FRIENDSCHAT) && chat != null && !chat.isHidden()) {
                 run4LessCCOverlay.init(config.ccLines(), chat.getWidth(), message);
             }
         }
-        if(config.filterTradeEnabled() && message.getType().equals(ChatMessageType.TRADE)){
+        if (config.filterTradeEnabled() && message.getType().equals(ChatMessageType.TRADE)) {
             removeMessage(message);
+        }
+        if (config.spamTrade() && message.getType().equals(ChatMessageType.TRADEREQ) && shouldSpam){
+            shouldSpam = false;
+            for (int i = 0; i < 7; i++) {
+                client.addChatMessage(message.getType(), message.getName(), message.getMessage(), message.getSender());
+            }
+            shouldSpam = true;
         }
     }
 

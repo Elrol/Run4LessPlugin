@@ -83,6 +83,15 @@ public interface Run4LessConfig extends Config {
         )
         default Color ccRColor() { return Color.GREEN; }
 
+        @ConfigItem(
+                position = 8,
+                keyName = "spamTrade",
+                name = "Trade Spam",
+                description = "Spams incoming trade requests to you.",
+                section = settings
+        )
+        default boolean spamTrade() { return true; }
+
     //////////////////////////
     //--------Client--------//
     //////////////////////////
