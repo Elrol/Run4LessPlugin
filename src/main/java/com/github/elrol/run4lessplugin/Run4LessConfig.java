@@ -157,4 +157,13 @@ public interface Run4LessConfig extends Config {
             section = runnerSettings
     )
     default boolean enableStats() { return true; }
+
+    @ConfigItem(
+            position = 206,
+            keyName = "enablePing",
+            name = "Runner Ping",
+            description = "Pings you when a runner is requested.",
+            section = runnerSettings
+    )
+    default boolean enablePing() { return true; }
 }

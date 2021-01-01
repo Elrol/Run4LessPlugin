@@ -176,7 +176,7 @@ public class Run4LessPlugin extends Plugin {
                 FriendsChatMember p = manager.findByName(sender);
                 if (p != null) {
                     FriendsChatRank rank = p.getRank();
-                    if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner)
+                    if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing())
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager);
                 }
             }
