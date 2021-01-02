@@ -19,6 +19,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 
 import javax.imageio.ImageIO;
@@ -30,9 +31,7 @@ import java.util.List;
 @PluginDescriptor(
         name = "Bone Running Plugin",
         description = "A plugin made for Bone Running, commissioned by the Run4Less group",
-        tags = {"run4less", "menu", "running", "bone"},
-        loadWhenOutdated = true,
-        enabledByDefault = false
+        tags = {"run4less", "menu", "running", "bone"}
 )
 public class Run4LessPlugin extends Plugin {
     @Inject
@@ -52,6 +51,9 @@ public class Run4LessPlugin extends Plugin {
 
     @Inject
     private Run4LessCCOverlay run4LessCCOverlay;
+
+    @Inject
+    private RunnerNotificationOverlay notificationOverlay;
 
     @Inject
     private ClientToolbar clientToolbar;
@@ -77,8 +79,8 @@ public class Run4LessPlugin extends Plugin {
 
     @Override
     protected void startUp() throws Exception {
-        URL img = new URL("https://i.imgur.com/5NtdRId.png");
-        BufferedImage image = ImageIO.read(img);
+        BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
+        //URL img = new URL("https://i.imgur.com/5NtdRId.png");
 
         run4LessCCOverlay.setFCManager(friendChatManager);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
@@ -100,7 +102,9 @@ public class Run4LessPlugin extends Plugin {
     protected void shutDown() throws Exception {
         overlayManager.remove(run4LessOverlay);
         overlayManager.remove(run4LessCCOverlay);
+        overlayManager.remove(notificationOverlay);
         clientToolbar.removeNavigation(panel);
+        menuManager.get().removePlayerMenuItem(setClient);
         super.shutDown();
     }
 
@@ -108,9 +112,9 @@ public class Run4LessPlugin extends Plugin {
     public void onChatMessage(ChatMessage message) {
         FriendsChatManager manager = client.getFriendsChatManager();
         if (manager != null && manager.getOwner().equalsIgnoreCase("Run4less")) {
-            System.out.println(message.getMessage());
+            //System.out.println(message.getMessage());
             if (message.getMessage().toLowerCase().contains("!bones ")) {
-                System.out.println("Ran bones command");
+                //System.out.println("Ran bones command");
                 String cmd = message.getMessage().toLowerCase().split("!bones ")[1];
                 String[] temp = cmd.split(" ");
                 int rate = 0;
@@ -127,7 +131,7 @@ public class Run4LessPlugin extends Plugin {
                 DecimalFormat formatter = new DecimalFormat("#,###");
                 String price = formatter.format(Math.round(((float) qty / 26F) * rate));
                 client.addChatMessage(message.getType(), message.getName(), temp[0] + "ing " + temp[1] + " bones would be " + price, message.getSender());
-                System.out.println(temp[0] + "ing " + temp[1] + " bones would be " + price);
+                //System.out.println(temp[0] + "ing " + temp[1] + " bones would be " + price);
             }
             if (message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()) {
                 Widget tradingWith = client.getWidget(334, 30);
@@ -160,7 +164,7 @@ public class Run4LessPlugin extends Plugin {
                         }
                         for (Widget w : offeredTrades.getChildren()) {
                             if (w == null) continue;
-                            System.out.println("[" + i++ + "]:" + w.getText());
+                            //System.out.println("[" + i++ + "]:" + w.getText());
                             String s = w.getText().toLowerCase();
                             if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
                                 bones = w.getText();
@@ -177,7 +181,7 @@ public class Run4LessPlugin extends Plugin {
                 if (p != null) {
                     FriendsChatRank rank = p.getRank();
                     if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing())
-                        TimedNotifier.init("Bone Runner Requested", 30, overlayManager);
+                        TimedNotifier.init("Bone Runner Requested", 30, overlayManager, notificationOverlay);
                 }
             }
         }

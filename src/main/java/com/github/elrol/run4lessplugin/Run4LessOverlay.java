@@ -6,6 +6,7 @@ import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.components.ComponentOrientation;
 import net.runelite.client.ui.overlay.components.ImageComponent;
 import net.runelite.client.ui.overlay.components.PanelComponent;
+import net.runelite.client.util.ImageUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -32,19 +33,13 @@ public class Run4LessOverlay extends Overlay {
 
     private BufferedImage getLogo(int dimX, int dimY){
         BufferedImage dimg = null;
-        try {
-            URL img = new URL("https://i.imgur.com/5NtdRId.png");
-            BufferedImage image = ImageIO.read(img);
-            Image tmp = image.getScaledInstance(dimX, dimY, Image.SCALE_SMOOTH);
-            dimg = new BufferedImage(dimX, dimY, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
+        Image tmp = image.getScaledInstance(dimX, dimY, Image.SCALE_SMOOTH);
+        dimg = new BufferedImage(dimX, dimY, BufferedImage.TYPE_INT_ARGB);
 
-            Graphics2D g2d = dimg.createGraphics();
-            g2d.drawImage(tmp, 0, 0, null);
-            g2d.dispose();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new BufferedImage(1,1, BufferedImage.TYPE_INT_ARGB);
-        }
+        Graphics2D g2d = dimg.createGraphics();
+        g2d.drawImage(tmp, 0, 0, null);
+        g2d.dispose();
         return dimg;
     }
 

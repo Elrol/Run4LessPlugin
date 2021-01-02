@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class RunnerStats {
 
-    private static final File dataLoc = new File("./logs/");
+    private static final File dataLoc = new File("./bonerunning_logs/");
     Map<String, RunnerData> runHistory = new HashMap<>();
     Map<String, Integer> bonesRan = new HashMap<>();
     int totalMade;
@@ -35,14 +35,14 @@ public class RunnerStats {
             data.notes.put(noted, notedQty + notes);
         }
         runHistory.put(client, data);
-        System.out.println("Client: " + client + ", Bones: " + bones + ", Count: " + count + ", Coins: " + coins + ", Notes: " + notes + ", Noted: " + noted);
+        //System.out.println("Client: " + client + ", Bones: " + bones + ", Count: " + count + ", Coins: " + coins + ", Notes: " + notes + ", Noted: " + noted);
         save();
     }
 
     public void save() {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         if(!dataLoc.exists()) dataLoc.mkdirs();
-        System.out.println("DataLoc: " + dataLoc.getAbsoluteFile());
+        //System.out.println("DataLoc: " + dataLoc.getAbsoluteFile());
         try(FileWriter writer = new FileWriter(new File(dataLoc, "rundata.json"))) {
             gson.toJson(this, writer);
         } catch (IOException e) {

@@ -7,18 +7,16 @@ import java.util.TimerTask;
 
 public class TimedNotifier {
     private static OverlayManager manager;
-    private static RunnerNotificationOverlay overlay;
     public static Timer timer;
     public static int time;
     public static String text;
 
-    public static void init(String txt, int seconds, OverlayManager m){
+    public static void init(String txt, int seconds, OverlayManager m, RunnerNotificationOverlay overlay){
         manager = m;
         text = txt;
         time = seconds;
 
-        if(overlay == null) {
-            overlay = new RunnerNotificationOverlay();
+        if(overlay.isNew()) {
             overlay.init(text, (time & 1) == 0);
             manager.add(overlay);
         } else {
@@ -26,19 +24,23 @@ public class TimedNotifier {
         }
 
         timer = new Timer();
-        timer.schedule(new NotifierTask(), 1000);
+        timer.schedule(new NotifierTask(overlay), 1000);
     }
 
     private static class NotifierTask extends TimerTask {
+        RunnerNotificationOverlay overlay;
+        public NotifierTask(RunnerNotificationOverlay overlay){
+            this.overlay = overlay;
+        }
 
         @Override
         public void run() {
             if(time > 0) {
                 time--;
-                init(text, time, manager);
+                init(text, time, manager, overlay);
             } else {
                 manager.remove(overlay);
-                overlay = null;
+                overlay.clearText();
             }
         }
     }
