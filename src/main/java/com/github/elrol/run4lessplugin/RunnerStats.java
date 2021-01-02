@@ -2,14 +2,17 @@ package com.github.elrol.run4lessplugin;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.RuneLite;
 
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 public class RunnerStats {
 
-    private static final File dataLoc = new File("./bonerunning_logs/");
+    private static final File dataLoc = new File(RuneLite.RUNELITE_DIR, "/bonerunning_logs/");
     Map<String, RunnerData> runHistory = new HashMap<>();
     Map<String, Integer> bonesRan = new HashMap<>();
     int totalMade;
@@ -35,14 +38,14 @@ public class RunnerStats {
             data.notes.put(noted, notedQty + notes);
         }
         runHistory.put(client, data);
-        //System.out.println("Client: " + client + ", Bones: " + bones + ", Count: " + count + ", Coins: " + coins + ", Notes: " + notes + ", Noted: " + noted);
+        log.debug("Client: " + client + ", Bones: " + bones + ", Count: " + count + ", Coins: " + coins + ", Notes: " + notes + ", Noted: " + noted);
         save();
     }
 
     public void save() {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         if(!dataLoc.exists()) dataLoc.mkdirs();
-        //System.out.println("DataLoc: " + dataLoc.getAbsoluteFile());
+        log.debug("DataLoc: " + dataLoc.getAbsoluteFile());
         try(FileWriter writer = new FileWriter(new File(dataLoc, "rundata.json"))) {
             gson.toJson(this, writer);
         } catch (IOException e) {

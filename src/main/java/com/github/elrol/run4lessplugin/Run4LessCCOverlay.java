@@ -1,6 +1,7 @@
 package com.github.elrol.run4lessplugin;
 
 import com.google.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.FriendsChatRank;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.game.FriendChatManager;
@@ -13,6 +14,7 @@ import net.runelite.client.ui.overlay.components.*;
 import java.awt.*;
 import java.util.ArrayList;
 
+@Slf4j
 public class Run4LessCCOverlay extends Overlay {
 
     @Inject
@@ -28,7 +30,7 @@ public class Run4LessCCOverlay extends Overlay {
 
     public void init(int lines, int width, ChatMessage message){
         clanMessages.add(message);
-        System.out.println("Name: " + message.getName());
+        log.debug("Name: " + message.getName());
         init(lines, width);
     }
 

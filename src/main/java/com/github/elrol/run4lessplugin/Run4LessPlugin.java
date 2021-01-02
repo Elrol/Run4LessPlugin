@@ -4,6 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
@@ -28,6 +29,7 @@ import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.List;
 
+@Slf4j
 @PluginDescriptor(
         name = "Bone Running Plugin",
         description = "A plugin made for Bone Running, commissioned by the Run4Less group",
@@ -112,9 +114,9 @@ public class Run4LessPlugin extends Plugin {
     public void onChatMessage(ChatMessage message) {
         FriendsChatManager manager = client.getFriendsChatManager();
         if (manager != null && manager.getOwner().equalsIgnoreCase("Run4less")) {
-            //System.out.println(message.getMessage());
+            log.debug(message.getMessage());
             if (message.getMessage().toLowerCase().contains("!bones ")) {
-                //System.out.println("Ran bones command");
+                log.debug("Ran bones command");
                 String cmd = message.getMessage().toLowerCase().split("!bones ")[1];
                 String[] temp = cmd.split(" ");
                 int rate = 0;
@@ -131,7 +133,7 @@ public class Run4LessPlugin extends Plugin {
                 DecimalFormat formatter = new DecimalFormat("#,###");
                 String price = formatter.format(Math.round(((float) qty / 26F) * rate));
                 client.addChatMessage(message.getType(), message.getName(), temp[0] + "ing " + temp[1] + " bones would be " + price, message.getSender());
-                //System.out.println(temp[0] + "ing " + temp[1] + " bones would be " + price);
+                log.debug(temp[0] + "ing " + temp[1] + " bones would be " + price);
             }
             if (message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()) {
                 Widget tradingWith = client.getWidget(334, 30);
@@ -164,7 +166,7 @@ public class Run4LessPlugin extends Plugin {
                         }
                         for (Widget w : offeredTrades.getChildren()) {
                             if (w == null) continue;
-                            //System.out.println("[" + i++ + "]:" + w.getText());
+                            log.debug("[" + i++ + "]:" + w.getText());
                             String s = w.getText().toLowerCase();
                             if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
                                 bones = w.getText();
