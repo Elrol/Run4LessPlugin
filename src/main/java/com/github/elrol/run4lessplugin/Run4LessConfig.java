@@ -45,46 +45,10 @@ public interface Run4LessConfig extends Config {
                 description = "Will remove all trade messages, other then trade offers.",
                 section = settings
         )
-        default boolean filterTradeEnabled() { return false; }
+        default boolean filterTradeEnabled() { return true; }
 
         @ConfigItem(
-                position = 4,
-                keyName = "splitCC",
-                name = "Split Clan Messages",
-                description = "Will display clan chat messages above the chat window.",
-                section = settings
-        )
-        default boolean splitCCEnabled() { return false; }
-
-        @ConfigItem(
-                position = 5,
-                keyName = "ccLines",
-                name = "Lines of Clan Chat",
-                description = "How many line of clan chat should be displayed.",
-                section = settings
-        )
-        default int ccLines() { return 0; }
-
-        @ConfigItem(
-                position = 6,
-                keyName = "ccColor",
-                name = "Clan Chat Color",
-                description = "Default Color for Clan Chat",
-                section = settings
-        )
-        default Color ccColor() { return Color.WHITE; }
-
-        @ConfigItem(
-                position = 7,
-                keyName = "ccRColor",
-                name = "Ranked Clan Chat Color",
-                description = "Color for Ranked Clan Members",
-                section = settings
-        )
-        default Color ccRColor() { return Color.GREEN; }
-
-        @ConfigItem(
-                position = 8,
+                position = 10,
                 keyName = "spamTrade",
                 name = "Trade Spam",
                 description = "Spams incoming trade requests to you.",
@@ -93,12 +57,95 @@ public interface Run4LessConfig extends Config {
         default boolean spamTrade() { return true; }
 
     //////////////////////////
+    //---------Clan---------//
+    //////////////////////////
+    @ConfigSection(
+            name = "Chat Settings",
+            description = "Settings for the clan chat",
+            position = 100
+    )
+    String clanchat = "clanchat";
+
+        @ConfigItem(
+                position = 101,
+                keyName = "ccName",
+                name = "ClanChat Owner",
+                description = "The owner of the group you are in.",
+                section = clanchat
+        )
+        default String ccName() { return "Run4Less"; }
+
+        @ConfigItem(
+                position = 102,
+                keyName = "splitCC",
+                name = "Split Clan Messages",
+                description = "Will display clan chat messages above the chat window.",
+                section = clanchat
+        )
+        default boolean splitCCEnabled() { return true; }
+
+        @ConfigItem(
+                position = 103,
+                keyName = "ccLines",
+                name = "Lines of Clan Chat",
+                description = "How many line of clan chat should be displayed.",
+                section = clanchat
+        )
+        default int ccLines() { return 5; }
+
+        @ConfigItem(
+                position = 104,
+                keyName = "ccColor",
+                name = "Clan Chat Color",
+                description = "Default color for clan chat",
+                section = clanchat
+        )
+        default Color ccColor() { return Color.WHITE; }
+
+        @ConfigItem(
+                position = 105,
+                keyName = "ccRColor",
+                name = "Ranked Clan Chat Color",
+                description = "Color for ranked members in clan chat.",
+                section = clanchat
+        )
+        default Color ccRColor() { return Color.GREEN; }
+
+        @ConfigItem(
+                position = 106,
+                keyName = "ccSColor",
+                name = "Your Clan Chat Color",
+                description = "Color for your own messages in clan chat.",
+                section = clanchat
+        )
+        default Color ccSColor() { return Color.BLUE; }
+
+        @ConfigItem(
+                position = 107,
+                keyName = "ccClientColor",
+                name = "Clan Chat Client Color",
+                description = "Color for your clients messages in clan chat.",
+                section = clanchat
+        )
+        default Color ccClientColor() { return Color.YELLOW; }
+
+
+        @ConfigItem(
+                position = 108,
+                keyName = "ccHostColor",
+                name = "Clan Chat Host Color",
+                description = "Color for Hosts in clan chat.",
+                section = clanchat
+        )
+        default Color ccHostColor() { return Color.RED; }
+
+    //////////////////////////
     //--------Client--------//
     //////////////////////////
     @ConfigSection(
             name = "Client Settings [NYI]",
             description = "Settings related to Bone Runner Clients",
-            position = 100
+            position = 200
     )
     String clientSettings = "clientSettings";
 
@@ -109,21 +156,21 @@ public interface Run4LessConfig extends Config {
     @ConfigSection(
             name = "Runner Settings",
             description = "Settings related to Bone Runners",
-            position = 200
+            position = 300
     )
     String runnerSettings = "runnerSettings";
 
         @ConfigItem(
-                position = 201,
+                position = 301,
                 keyName = "offerAll",
                 name = "Offer All Items",
                 description = "Will offer all of the item clicked when trading.",
                 section = runnerSettings
         )
-        default boolean offerAllEnabled() { return false; }
+        default boolean offerAllEnabled() { return true; }
 
         @ConfigItem(
-                position = 202,
+                position = 302,
                 keyName = "clientFilter",
                 name = "Client Filter",
                 description = "Filters different things using the Client Name.",
@@ -132,16 +179,7 @@ public interface Run4LessConfig extends Config {
         default boolean clientFilterEnabled() { return false; }
 
         @ConfigItem(
-                position = 203,
-                keyName = "ccClientColor",
-                name = "Clan Chat Client Color",
-                description = "Will offer all of the item clicked when trading.",
-                section = runnerSettings
-        )
-        default Color ccClientColor() { return Color.YELLOW; }
-
-        @ConfigItem(
-                position = 204,
+                position = 304,
                 keyName = "clientName",
                 name = "Client's Name",
                 description = "Will filter other settings to make the client stand out.",
@@ -149,21 +187,86 @@ public interface Run4LessConfig extends Config {
         )
         default String clientName() { return ""; }
 
-    @ConfigItem(
-            position = 205,
-            keyName = "enableStats",
-            name = "Runner Stats",
-            description = "Logs the stats from trading.",
-            section = runnerSettings
-    )
-    default boolean enableStats() { return true; }
+        @ConfigItem(
+                position = 305,
+                keyName = "enableStats",
+                name = "Runner Stats",
+                description = "Logs the stats from trading.",
+                section = runnerSettings
+        )
+        default boolean enableStats() { return true; }
 
-    @ConfigItem(
-            position = 206,
-            keyName = "enablePing",
-            name = "Runner Ping",
-            description = "Pings you when a runner is requested.",
-            section = runnerSettings
+        @ConfigItem(
+                position = 306,
+                keyName = "enablePing",
+                name = "Runner Ping",
+                description = "Pings you when a runner is requested.",
+                section = runnerSettings
+        )
+        default boolean enablePing() { return true; }
+
+    /////////////////////////
+    //--------Hosts--------//
+    /////////////////////////
+    @ConfigSection(
+            name = "Host Settings",
+            description = "Settings related to hosts",
+            position = 400
     )
-    default boolean enablePing() { return true; }
+    String hostSettings = "hostSettings";
+
+        @ConfigItem(
+                position = 401,
+                keyName = "hostEnabled",
+                name = "Host Overlay",
+                description = "Enables the host overlay.",
+                section = hostSettings
+        )
+        default boolean hostEnabled() { return true; }
+
+        @ConfigItem(
+                position = 402,
+                keyName = "hostColor",
+                name = "Host Color",
+                description = "The color of the host text.",
+                section = hostSettings
+        )
+        default Color hostColor() { return Color.CYAN; }
+
+        @ConfigItem(
+                position = 403,
+                keyName = "hostLimit",
+                name = "Host Limit",
+                description = "The number of hosts displayed.",
+                section = hostSettings
+        )
+        default int hostLimit() { return 10; }
+
+    /////////////////////////
+    //-----Connections-----//
+    /////////////////////////
+    @ConfigSection(
+            name = "Connection Settings",
+            description = "Settings related to external connections",
+            position = 500
+    )
+    String connectionSettings = "connectionSettings";
+
+        @ConfigItem(
+                position = 501,
+                keyName = "logoURL",
+                name = "Logo URL",
+                description = "The URL of the logo.",
+                section = connectionSettings
+        )
+        default String logoUrl() { return ""; }
+
+        @ConfigItem(
+                position = 502,
+                keyName = "hostJson",
+                name = "Host Json URL",
+                description = "The URL of the json file.",
+                section = connectionSettings
+        )
+        default String hostJson() { return ""; }
 }

@@ -24,9 +24,13 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -46,9 +50,6 @@ public class Run4LessPlugin extends Plugin {
     private OverlayManager overlayManager;
 
     @Inject
-    private FriendChatManager friendChatManager;
-
-    @Inject
     private Run4LessOverlay run4LessOverlay;
 
     @Inject
@@ -56,6 +57,9 @@ public class Run4LessPlugin extends Plugin {
 
     @Inject
     private RunnerNotificationOverlay notificationOverlay;
+
+    @Inject
+    private Run4LessHostOverlay run4LessHostOverlay;
 
     @Inject
     private ClientToolbar clientToolbar;
@@ -76,26 +80,42 @@ public class Run4LessPlugin extends Plugin {
 
     private final ArrayListMultimap<String, Integer> indexes = ArrayListMultimap.create();
     public static RunnerStats stats = RunnerStats.load();
+    public static HostData hostData;
     public static final String setClient = "Set as Client";
     boolean shouldSpam = true;
+    public ArrayList<String> hosts = new ArrayList<>();
+    public ArrayList<String> hosting = new ArrayList<>();
 
     @Override
     protected void startUp() throws Exception {
-        BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
         //URL img = new URL("https://i.imgur.com/5NtdRId.png");
-
-        run4LessCCOverlay.setFCManager(friendChatManager);
+        hostData = HostData.load(config.hostJson());
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
-        if(config.splitCCEnabled() && config.ccLines() > 0){
-            overlayManager.add(run4LessCCOverlay);
+        if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
+        if(config.hostEnabled() && config.hostLimit() > 0) overlayManager.add(run4LessHostOverlay);
+
+        BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
+        if(config.logoUrl() != null && !config.logoUrl().equals("")) {
+            try {
+                image = ImageIO.read(new URL(config.logoUrl()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         panel = NavigationButton.builder()
-                .tooltip("Run4Less")
+                .tooltip("Bone Calculator")
                 .icon(image)
                 .priority(10)
                 .panel(new Run4LessPanel())
                 .build();
         clientToolbar.addNavigation(panel);
+        FriendsChatManager manager = client.getFriendsChatManager();
+        Player player = client.getLocalPlayer();
+        if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())) {
+            FriendsChatRank rank = manager.findByName(player.getName()).getRank();
+            if(rank != FriendsChatRank.UNRANKED)
+                overlayManager.add(run4LessOverlay);
+        }
 
         super.startUp();
     }
@@ -105,6 +125,7 @@ public class Run4LessPlugin extends Plugin {
         overlayManager.remove(run4LessOverlay);
         overlayManager.remove(run4LessCCOverlay);
         overlayManager.remove(notificationOverlay);
+        overlayManager.remove(run4LessHostOverlay);
         clientToolbar.removeNavigation(panel);
         menuManager.get().removePlayerMenuItem(setClient);
         super.shutDown();
@@ -113,7 +134,13 @@ public class Run4LessPlugin extends Plugin {
     @Subscribe(priority = -2)
     public void onChatMessage(ChatMessage message) {
         FriendsChatManager manager = client.getFriendsChatManager();
-        if (manager != null && manager.getOwner().equalsIgnoreCase("Run4less")) {
+        if (manager != null && manager.getOwner().equalsIgnoreCase(config.ccName()) && message.getType().equals(ChatMessageType.FRIENDSCHAT)) {
+            if (config.splitCCEnabled() && config.ccLines() > 0) {
+                final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
+                if (chat != null && !chat.isHidden()) {
+                    run4LessCCOverlay.init(chat.getWidth(), message);
+                }
+            }
             log.debug(message.getMessage());
             if (message.getMessage().toLowerCase().contains("!bones ")) {
                 log.debug("Ran bones command");
@@ -122,8 +149,7 @@ public class Run4LessPlugin extends Plugin {
                 int rate = 0;
                 if (temp[0].equalsIgnoreCase("afk")) rate = 20000;
                 else if (temp[0].equalsIgnoreCase("tick")) rate = 18000;
-                else
-                    client.addChatMessage(message.getType(), message.getName(), "Invalid argument [" + temp[0] + "]. Options are [tick/afk]", message.getSender());
+                else client.addChatMessage(message.getType(), message.getName(), "Invalid argument [" + temp[0] + "]. Options are [tick/afk]", message.getSender());
 
                 int qty = Integer.parseInt(temp[1]);
                 if (qty <= 0) {
@@ -139,41 +165,43 @@ public class Run4LessPlugin extends Plugin {
                 Widget tradingWith = client.getWidget(334, 30);
                 if (tradingWith != null) {
                     String rsn = tradingWith.getText().replace("Trading with:<br>", "");
-                    Widget partnerTrades = client.getWidget(334, 29);
-                    Widget offeredTrades = client.getWidget(334, 28);
+                    if (rsn.equalsIgnoreCase(config.clientName())) {
+                        Widget partnerTrades = client.getWidget(334, 29);
+                        Widget offeredTrades = client.getWidget(334, 28);
 
-                    if (partnerTrades != null && offeredTrades != null) {
-                        int i = 0;
-                        int coins = 0;
-                        int notes = 0;
-                        int qty = 0;
-                        String bones = "";
-                        String noted = "";
-                        for (Widget w : partnerTrades.getChildren()) {
-                            String text = w.getText();
-                            if (text.startsWith("Coins")) {
-                                if (text.contains("(")) text = text.split("[(]")[1];
-                                else text = text.split("<col=ffffff> x <col=ffff00>")[1];
-                                text = text.replace(",", "").replace(")", "");
-                                coins += Integer.parseInt(text);
-                            } else if (text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")) {
-                                String[] temp = text.split("<col=ffffff> x <col=ffff00>");
-                                noted = temp[0];
-                                notes = Integer.parseInt(temp[1]);
-                            } else if (text.toLowerCase().contains("bones")) {
-                                qty--;
+                        if (partnerTrades != null && offeredTrades != null) {
+                            int i = 0;
+                            int coins = 0;
+                            int notes = 0;
+                            int qty = 0;
+                            String bones = "";
+                            String noted = "";
+                            for (Widget w : partnerTrades.getChildren()) {
+                                String text = w.getText();
+                                if (text.startsWith("Coins")) {
+                                    if (text.contains("(")) text = text.split("[(]")[1];
+                                    else text = text.split("<col=ffffff> x <col=ffff00>")[1];
+                                    text = text.replace(",", "").replace(")", "");
+                                    coins += Integer.parseInt(text);
+                                } else if (text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")) {
+                                    String[] temp = text.split("<col=ffffff> x <col=ffff00>");
+                                    noted = temp[0];
+                                    notes = Integer.parseInt(temp[1]);
+                                } else if (text.toLowerCase().contains("bones")) {
+                                    qty--;
+                                }
                             }
-                        }
-                        for (Widget w : offeredTrades.getChildren()) {
-                            if (w == null) continue;
-                            log.debug("[" + i++ + "]:" + w.getText());
-                            String s = w.getText().toLowerCase();
-                            if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
-                                bones = w.getText();
-                                qty++;
+                            for (Widget w : offeredTrades.getChildren()) {
+                                if (w == null) continue;
+                                log.debug("[" + i++ + "]:" + w.getText());
+                                String s = w.getText().toLowerCase();
+                                if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
+                                    bones = w.getText();
+                                    qty++;
+                                }
                             }
+                            stats.addRun(rsn, bones, qty, coins, notes, noted);
                         }
-                        stats.addRun(rsn, bones, qty, coins, notes, noted);
                     }
                 }
             }
@@ -184,13 +212,15 @@ public class Run4LessPlugin extends Plugin {
                     FriendsChatRank rank = p.getRank();
                     if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing())
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager, notificationOverlay);
+                    if(hosts.contains(p.getName()) && message.getMessage().contains("@host")){
+                        if(hosting.contains(p.getName())){
+                            hosting.remove(p.getName());
+                        } else {
+                            hosting.add(p.getName());
+                        }
+                        run4LessHostOverlay.init(hosting);
+                    }
                 }
-            }
-        }
-        if (config.splitCCEnabled() && config.ccLines() > 0) {
-            final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
-            if (message.getType().equals(ChatMessageType.FRIENDSCHAT) && chat != null && !chat.isHidden()) {
-                run4LessCCOverlay.init(config.ccLines(), chat.getWidth(), message);
             }
         }
         if (config.filterTradeEnabled() && message.getType().equals(ChatMessageType.TRADE)) {
@@ -210,11 +240,30 @@ public class Run4LessPlugin extends Plugin {
         if(event.getGroup().equals("run4less")){
             if(config.splitCCEnabled()) {
                 final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
-                if(chat != null) run4LessCCOverlay.init(config.ccLines(), chat.getWidth());
+                if(chat != null) run4LessCCOverlay.init(chat.getWidth());
                 overlayManager.add(run4LessCCOverlay);
             } else {
                 overlayManager.remove(run4LessCCOverlay);
             }
+            BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
+            run4LessOverlay.setLogo(config.logoUrl());
+            overlayManager.remove(run4LessOverlay);
+            clientToolbar.removeNavigation(panel);
+            if(config.logoUrl() != null && !config.logoUrl().equals("")) {
+                try {
+                    image = ImageIO.read(new URL(config.logoUrl()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            panel = NavigationButton.builder()
+                    .tooltip("Bone Calculator")
+                    .icon(image)
+                    .priority(10)
+                    .panel(new Run4LessPanel())
+                    .build();
+            overlayManager.add(run4LessOverlay);
+            clientToolbar.addNavigation(panel);
         }
     }
 
@@ -223,13 +272,13 @@ public class Run4LessPlugin extends Plugin {
         clientThread.invokeLater(() -> {
             FriendsChatManager manager = client.getFriendsChatManager();
             Player player = client.getLocalPlayer();
-            if(manager != null && player != null && manager.getOwner().equalsIgnoreCase("Run4less")){
+            if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())){
                 FriendsChatRank rank = manager.findByName(player.getName()).getRank();
                 if(rank.equals(FriendsChatRank.FRIEND)){
                     isHost = true;
                     overlayManager.add(run4LessOverlay);
                     return;
-                } else if(!rank.equals(FriendsChatRank.OWNER)) {
+                } else if(!rank.equals(FriendsChatRank.UNRANKED)) {
                     isRunner = true;
                     overlayManager.add(run4LessOverlay);
                     return;
@@ -237,9 +286,44 @@ public class Run4LessPlugin extends Plugin {
                     isRunner = false;
                     isHost = false;
                 }
+                hosts.clear();
+                for(FriendsChatMember member : manager.getMembers()){
+                    if (isPlayerHost(member))
+                        hosts.add(member.getName());
+                    else
+                        hosting.remove(member.getName());
+                }
+                run4LessHostOverlay.init(hosting);
             }
             overlayManager.remove(run4LessOverlay);
         });
+    }
+
+    private boolean isPlayerHost(FriendsChatMember member){
+        return (member.getRank().equals(FriendsChatRank.FRIEND) && !hosts.contains(member.getName()))
+                || (hostData.getUsers().contains(member.getName()) && !hosts.contains(member.getName()));
+    }
+    @Subscribe
+    public void onFriendsChatMemberJoined(FriendsChatMemberJoined event){
+        FriendsChatMember member = event.getMember();
+        if (isPlayerHost(member)) {
+            hosts.add(member.getName());
+            log.info("Added Host: " + member.getName());
+        }
+    }
+
+    @Subscribe
+    public void onFriendsChatMemberLeft(FriendsChatMemberLeft event){
+        Player player = client.getLocalPlayer();
+        if(player != null) {
+            if (event.getMember().getName().equals(player.getName())) {
+                hosts.clear();
+                hosting.clear();
+            } else {
+                hosting.remove(event.getMember().getName());
+            }
+            run4LessHostOverlay.init(hosting);
+        }
     }
 
     @Subscribe

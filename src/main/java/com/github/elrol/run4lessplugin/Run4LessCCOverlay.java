@@ -2,7 +2,10 @@ package com.github.elrol.run4lessplugin;
 
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
+import net.runelite.api.FriendsChatManager;
 import net.runelite.api.FriendsChatRank;
+import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.game.FriendChatManager;
 import net.runelite.client.ui.overlay.Overlay;
@@ -20,57 +23,61 @@ public class Run4LessCCOverlay extends Overlay {
     @Inject
     private Run4LessConfig config;
 
+    @Inject
+    private Client client;
+
     private ArrayList<ChatMessage> clanMessages = new ArrayList<>();
     private PanelComponent panelComponent = new PanelComponent();
-    private FriendChatManager manager;
 
-    public void setFCManager(FriendChatManager manager){
-        this.manager = manager;
-    }
-
-    public void init(int lines, int width, ChatMessage message){
-        clanMessages.add(message);
-        log.debug("Name: " + message.getName());
-        init(lines, width);
-    }
-
-    public void init(int lines, int width){
-        if(clanMessages.size() >= lines){
-            int qty = clanMessages.size();
-            for(int i = 0; i < qty; i++){
-                if(i < (clanMessages.size() - lines)) clanMessages.remove(i);
-            }
-        }
+    public Run4LessCCOverlay(){
         setPriority(OverlayPriority.HIGHEST);
         setPosition(OverlayPosition.ABOVE_CHATBOX_RIGHT);
-        setLayer(OverlayLayer.ABOVE_WIDGETS);
+    }
+
+    public void init(int width, ChatMessage message){
+        clanMessages.add(message);
+        init(width);
+    }
+
+    public void init(int width){
+        Player s = client.getLocalPlayer();
+        if(s == null) return;
         panelComponent.setPreferredSize(new Dimension(width, 0));
         panelComponent.getChildren().clear();
-        clanMessages.forEach(msg -> {
-            Color color = config.ccColor();
-            if(manager != null){
-                FriendsChatRank rank = manager.getRank(msg.getName());
-                if(rank != null && rank != FriendsChatRank.UNRANKED){
-                    color = config.ccRColor();
-                }
-            }
-            if(msg.getName().equalsIgnoreCase(config.clientName())) color = config.ccClientColor();
-            if(config.clientFilterEnabled()){
-                if(!config.clientName().isEmpty() && config.clientName().equalsIgnoreCase(msg.getName())){
-                    LineComponent line = LineComponent.builder()
-                            .leftColor(color)
-                            .left(msg.getMessageNode().getName() + ": " + msg.getMessage())
-                            .build();
-                    panelComponent.getChildren().add(line);
+        int last = clanMessages.size()-1;
+        ArrayList<ChatMessage> msgs = new ArrayList<>();
+        for(int i = last; i >= 0; i--){
+            if(msgs.size() >= config.ccLines()) break;
+            ChatMessage msg = clanMessages.get(i);
+            if(config.clientFilterEnabled()) {
+                if (!config.clientName().isEmpty() && (config.clientName().equalsIgnoreCase(msg.getName()) || msg.getName().equalsIgnoreCase(s.getName()))) {
+                    msgs.add(msg);
                 }
             } else {
-                LineComponent line = LineComponent.builder()
-                        .leftColor(color)
-                        .left(msg.getMessageNode().getName() + ": " + msg.getMessage())
-                        .build();
-                panelComponent.getChildren().add(line);
+                msgs.add(msg);
             }
-        });
+        }
+        for(int i = msgs.size()-1; i >= 0; i--) {
+            panelComponent.getChildren().add(colorMessage(msgs.get(i), s.getName()));
+        }
+    }
+
+    private LineComponent colorMessage(ChatMessage msg, String name){
+        Color color = config.ccColor();
+        if(client.getFriendsChatManager() != null){
+            FriendsChatRank rank = client.getFriendsChatManager().findByName(msg.getName()).getRank();
+            if(rank != null){
+                if(rank != FriendsChatRank.UNRANKED) color = config.ccRColor();
+                if(rank.equals(FriendsChatRank.FRIEND)) color = config.ccHostColor();
+            }
+            if(msg.getMessageNode().getName().equalsIgnoreCase(name))
+                color = config.ccSColor();
+        }
+        if(msg.getName().equalsIgnoreCase(config.clientName())) color = config.ccClientColor();
+        return LineComponent.builder()
+                .leftColor(color)
+                .left(msg.getMessageNode().getName() + ": " + msg.getMessage())
+                .build();
     }
 
     @Override
