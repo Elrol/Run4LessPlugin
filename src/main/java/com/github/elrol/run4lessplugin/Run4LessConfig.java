@@ -218,11 +218,11 @@ public interface Run4LessConfig extends Config {
         @ConfigItem(
                 position = 401,
                 keyName = "hostEnabled",
-                name = "Host Overlay",
+                name = "Host Overlay [NYI]",
                 description = "Enables the host overlay.",
                 section = hostSettings
         )
-        default boolean hostEnabled() { return true; }
+        default boolean hostEnabled() { return false; }
 
         @ConfigItem(
                 position = 402,

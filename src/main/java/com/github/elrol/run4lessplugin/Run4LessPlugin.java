@@ -90,9 +90,10 @@ public class Run4LessPlugin extends Plugin {
     protected void startUp() throws Exception {
         //URL img = new URL("https://i.imgur.com/5NtdRId.png");
         hostData = HostData.load(config.hostJson());
+        run4LessHostOverlay.init(hosting);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
-        if(config.hostEnabled() && config.hostLimit() > 0) overlayManager.add(run4LessHostOverlay);
+        //if(config.hostEnabled() && config.hostLimit() > 0) overlayManager.add(run4LessHostOverlay);
 
         BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
         if(config.logoUrl() != null && !config.logoUrl().equals("")) {
@@ -262,8 +263,16 @@ public class Run4LessPlugin extends Plugin {
                     .priority(10)
                     .panel(new Run4LessPanel())
                     .build();
-            overlayManager.add(run4LessOverlay);
             clientToolbar.addNavigation(panel);
+            FriendsChatManager manager = client.getFriendsChatManager();
+            Player player = client.getLocalPlayer();
+            if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())) {
+                FriendsChatRank rank = manager.findByName(player.getName()).getRank();
+                if(rank != FriendsChatRank.UNRANKED)
+                    overlayManager.add(run4LessOverlay);
+            }
+            //if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
+            //else overlayManager.remove(run4LessHostOverlay);
         }
     }
 
@@ -273,6 +282,8 @@ public class Run4LessPlugin extends Plugin {
             FriendsChatManager manager = client.getFriendsChatManager();
             Player player = client.getLocalPlayer();
             if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())){
+                //if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
+                //else overlayManager.remove(run4LessHostOverlay);
                 FriendsChatRank rank = manager.findByName(player.getName()).getRank();
                 if(rank.equals(FriendsChatRank.FRIEND)){
                     isHost = true;
@@ -308,7 +319,6 @@ public class Run4LessPlugin extends Plugin {
         FriendsChatMember member = event.getMember();
         if (isPlayerHost(member)) {
             hosts.add(member.getName());
-            log.info("Added Host: " + member.getName());
         }
     }
 
