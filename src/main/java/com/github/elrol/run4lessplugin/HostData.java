@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,11 +33,8 @@ public class HostData {
         Gson gson = new Gson();
         HostData hostData = new HostData();
         if(hostJson == null || hostJson.isEmpty()) return hostData;
-        try {
-            URL url = new URL(hostJson);
-            URLConnection urlConnection = url.openConnection();
-            urlConnection.addRequestProperty("User-Agent", "Mozilla");
-            InputStreamReader reader = new InputStreamReader(urlConnection.getInputStream());
+        try(InputStream is = new URL(hostJson).openStream()) {
+            InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             hostData = gson.fromJson(reader, HostData.class);
             reader.close();
             log.info(hostData.toString());

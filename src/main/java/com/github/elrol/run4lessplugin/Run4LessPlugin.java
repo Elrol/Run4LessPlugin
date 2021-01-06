@@ -13,7 +13,6 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
-import net.runelite.client.game.FriendChatManager;
 import net.runelite.client.menus.MenuManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -27,7 +26,6 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -88,24 +86,13 @@ public class Run4LessPlugin extends Plugin {
 
     @Override
     protected void startUp() throws Exception {
-        //URL img = new URL("https://i.imgur.com/5NtdRId.png");
         hostData = HostData.load(config.hostJson());
         run4LessHostOverlay.init(hosting);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
-        //if(config.hostEnabled() && config.hostLimit() > 0) overlayManager.add(run4LessHostOverlay);
-
-        BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
-        if(config.logoUrl() != null && !config.logoUrl().equals("")) {
-            try {
-                image = ImageIO.read(new URL(config.logoUrl()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
         panel = NavigationButton.builder()
                 .tooltip("Bone Calculator")
-                .icon(image)
+                .icon(getLogo(getClass(), config.logoUrl(), 0,0))
                 .priority(10)
                 .panel(new Run4LessPanel())
                 .build();
@@ -115,6 +102,7 @@ public class Run4LessPlugin extends Plugin {
         if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())) {
             FriendsChatRank rank = manager.findByName(player.getName()).getRank();
             if(rank != FriendsChatRank.UNRANKED)
+                run4LessOverlay.setLogo(config.logoUrl());
                 overlayManager.add(run4LessOverlay);
         }
 
@@ -246,20 +234,12 @@ public class Run4LessPlugin extends Plugin {
             } else {
                 overlayManager.remove(run4LessCCOverlay);
             }
-            BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
             run4LessOverlay.setLogo(config.logoUrl());
             overlayManager.remove(run4LessOverlay);
             clientToolbar.removeNavigation(panel);
-            if(config.logoUrl() != null && !config.logoUrl().equals("")) {
-                try {
-                    image = ImageIO.read(new URL(config.logoUrl()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
             panel = NavigationButton.builder()
                     .tooltip("Bone Calculator")
-                    .icon(image)
+                    .icon(getLogo(getClass(), config.logoUrl(), 0,0))
                     .priority(10)
                     .panel(new Run4LessPanel())
                     .build();
@@ -406,5 +386,24 @@ public class Run4LessPlugin extends Plugin {
     @Provides
     Run4LessConfig getConfig(ConfigManager configManager){
         return configManager.getConfig(Run4LessConfig.class);
+    }
+
+    public static synchronized BufferedImage getLogo(Class<?> c, String url, int dimX, int dimY){
+        BufferedImage image = ImageUtil.getResourceStreamFromClass(c, "/R4L.png");
+        if(!url.equals("") && !url.equalsIgnoreCase("none")) {
+            try {
+                image = ImageIO.read(new URL(url));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if(dimX <= 0 || dimY <= 0) return image;
+        Image tmp = image.getScaledInstance(dimX, dimY, Image.SCALE_SMOOTH);
+        BufferedImage dimg = new BufferedImage(dimX, dimY, BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D g2d = dimg.createGraphics();
+        g2d.drawImage(tmp, 0, 0, null);
+        g2d.dispose();
+        return dimg;
     }
 }

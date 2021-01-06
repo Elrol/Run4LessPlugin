@@ -24,37 +24,18 @@ public class Run4LessOverlay extends Overlay {
         setPosition(OverlayPosition.TOP_LEFT);
         setPreferredSize(new Dimension(20,20));
         panelComponent.setOrientation(ComponentOrientation.HORIZONTAL);
-        panelComponent.getChildren().add(new ImageComponent(getLogo(60,60)));
+        panelComponent.getChildren().add(new ImageComponent(Run4LessPlugin.getLogo(getClass(), url, 60,60)));
     }
 
     public void setLogo(String url){
         this.url = url;
         panelComponent.getChildren().clear();
-        panelComponent.getChildren().add(new ImageComponent(getLogo(60,60)));
+        if(!url.equalsIgnoreCase("none"))panelComponent.getChildren().add(new ImageComponent(Run4LessPlugin.getLogo(getClass(), url, 60,60)));
     }
 
     @Override
     public Dimension render(Graphics2D graphics) {
         return panelComponent.render(graphics);
-    }
-
-    private BufferedImage getLogo(int dimX, int dimY){
-        BufferedImage image = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
-        if(!url.equals("")) {
-            try {
-                image = ImageIO.read(new URL(url));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        Image tmp = image.getScaledInstance(dimX, dimY, Image.SCALE_SMOOTH);
-        BufferedImage dimg = new BufferedImage(dimX, dimY, BufferedImage.TYPE_INT_ARGB);
-
-        Graphics2D g2d = dimg.createGraphics();
-        g2d.drawImage(tmp, 0, 0, null);
-        g2d.dispose();
-        return dimg;
     }
 
 }
