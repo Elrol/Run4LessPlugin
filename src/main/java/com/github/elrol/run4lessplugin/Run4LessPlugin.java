@@ -4,7 +4,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
-import com.sun.istack.internal.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
@@ -406,16 +405,18 @@ public class Run4LessPlugin extends Plugin {
             Request req = new Request.Builder().url(url).build();
             client.newCall(req).enqueue(new Callback() {
                 @Override
-                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                public void onFailure(Call call, IOException e) {
                     update(logo);
                     e.printStackTrace();
                 }
 
                 @Override
-                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                public void onResponse(Call call, Response response) throws IOException {
                     try (ResponseBody responseBody = response.body()) {
                         synchronized (ImageIO.class) {
-                            logo = resize(ImageIO.read(responseBody.byteStream()));
+                            BufferedImage temp = ImageIO.read(responseBody.byteStream());
+                            if(temp != null)
+                                logo = resize(temp);
                             update(logo);
                         }
                     }

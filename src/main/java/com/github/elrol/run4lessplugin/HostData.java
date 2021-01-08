@@ -2,16 +2,10 @@ package com.github.elrol.run4lessplugin;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,10 +31,10 @@ public class HostData {
         Request req = new Request.Builder().url(hostJson).build();
         client.newCall(req).enqueue(new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {}
+            public void onFailure(Call call, IOException e) {}
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse(Call call, Response response) throws IOException {
                 InputStreamReader reader = new InputStreamReader(response.body().byteStream(), StandardCharsets.UTF_8);
                 HostData data = gson.fromJson(reader, HostData.class);
                 Run4LessPlugin.hostData.OSRS_Hosts = data.OSRS_Hosts;
