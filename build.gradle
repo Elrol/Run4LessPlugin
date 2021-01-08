@@ -17,7 +17,6 @@ dependencies {
 
 	compileOnly 'org.projectlombok:lombok:1.18.4'
 	annotationProcessor 'org.projectlombok:lombok:1.18.4'
-	implementation("com.squareup.okhttp3:okhttp:4.9.0")
 	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 }
