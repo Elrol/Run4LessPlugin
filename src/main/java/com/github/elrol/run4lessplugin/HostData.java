@@ -5,6 +5,8 @@ import com.google.gson.annotations.SerializedName;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.net.URL;
@@ -23,25 +25,28 @@ public class HostData {
     public List<String> getUsers(){
         List<String> users = new ArrayList<>();
         if(OSRS_Hosts == null) return users;
-        for(Host host : OSRS_Hosts){
+        for(Host host : OSRS_Hosts)
             users.add(host.Username);
-        }
         return users;
     }
 
-    public static HostData load(String hostJson){
+    public void load(String hostJson){
         Gson gson = new Gson();
-        HostData hostData = new HostData();
-        if(hostJson == null || hostJson.isEmpty()) return hostData;
-        try(InputStream is = new URL(hostJson).openStream()) {
-            InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-            hostData = gson.fromJson(reader, HostData.class);
-            reader.close();
-            log.info(hostData.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return hostData;
+        if(hostJson == null || hostJson.isEmpty()) return;
+        OkHttpClient client = new OkHttpClient();
+        Request req = new Request.Builder().url(hostJson).build();
+        client.newCall(req).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {}
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                InputStreamReader reader = new InputStreamReader(response.body().byteStream(), StandardCharsets.UTF_8);
+                HostData data = gson.fromJson(reader, HostData.class);
+                Run4LessPlugin.hostData.OSRS_Hosts = data.OSRS_Hosts;
+                reader.close();
+            }
+        });
     }
 
     @Override

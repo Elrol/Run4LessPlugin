@@ -21,12 +21,14 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
+import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,41 +73,36 @@ public class Run4LessPlugin extends Plugin {
     @Inject
     private ConfigManager configManager;
 
-    private NavigationButton panel;
+    public static NavigationButton panel;
 
     private boolean isRunner = false;
     private boolean isHost = false;
 
     private final ArrayListMultimap<String, Integer> indexes = ArrayListMultimap.create();
     public static RunnerStats stats = RunnerStats.load();
-    public static HostData hostData;
+    public static HostData hostData = new HostData();
     public static final String setClient = "Set as Client";
     boolean shouldSpam = true;
     public ArrayList<String> hosts = new ArrayList<>();
     public ArrayList<String> hosting = new ArrayList<>();
+    public static BufferedImage logo;
 
     @Override
     protected void startUp() throws Exception {
-        hostData = HostData.load(config.hostJson());
+        hostData.load(config.hostJson());
         run4LessHostOverlay.init(hosting);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
+        logo = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
+        logo = resize(logo);
         panel = NavigationButton.builder()
                 .tooltip("Bone Calculator")
-                .icon(getLogo(getClass(), config.logoUrl(), 0,0))
+                .icon(logo)
                 .priority(10)
                 .panel(new Run4LessPanel())
                 .build();
         clientToolbar.addNavigation(panel);
-        FriendsChatManager manager = client.getFriendsChatManager();
-        Player player = client.getLocalPlayer();
-        if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())) {
-            FriendsChatRank rank = manager.findByName(player.getName()).getRank();
-            if(rank != FriendsChatRank.UNRANKED)
-                run4LessOverlay.setLogo(config.logoUrl());
-                overlayManager.add(run4LessOverlay);
-        }
-
+        updateLogo(getClass(), config.logoUrl());
         super.startUp();
     }
 
@@ -234,23 +231,10 @@ public class Run4LessPlugin extends Plugin {
             } else {
                 overlayManager.remove(run4LessCCOverlay);
             }
-            run4LessOverlay.setLogo(config.logoUrl());
             overlayManager.remove(run4LessOverlay);
-            clientToolbar.removeNavigation(panel);
-            panel = NavigationButton.builder()
-                    .tooltip("Bone Calculator")
-                    .icon(getLogo(getClass(), config.logoUrl(), 0,0))
-                    .priority(10)
-                    .panel(new Run4LessPanel())
-                    .build();
-            clientToolbar.addNavigation(panel);
             FriendsChatManager manager = client.getFriendsChatManager();
             Player player = client.getLocalPlayer();
-            if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())) {
-                FriendsChatRank rank = manager.findByName(player.getName()).getRank();
-                if(rank != FriendsChatRank.UNRANKED)
-                    overlayManager.add(run4LessOverlay);
-            }
+            updateLogo(getClass(), config.logoUrl());
             //if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
             //else overlayManager.remove(run4LessHostOverlay);
         }
@@ -262,16 +246,14 @@ public class Run4LessPlugin extends Plugin {
             FriendsChatManager manager = client.getFriendsChatManager();
             Player player = client.getLocalPlayer();
             if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())){
-                //if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
-                //else overlayManager.remove(run4LessHostOverlay);
                 FriendsChatRank rank = manager.findByName(player.getName()).getRank();
                 if(rank.equals(FriendsChatRank.FRIEND)){
                     isHost = true;
-                    overlayManager.add(run4LessOverlay);
+                    updateLogo(getClass(), config.logoUrl());
                     return;
                 } else if(!rank.equals(FriendsChatRank.UNRANKED)) {
                     isRunner = true;
-                    overlayManager.add(run4LessOverlay);
+                    updateLogo(getClass(), config.logoUrl());
                     return;
                 } else {
                     isRunner = false;
@@ -319,6 +301,18 @@ public class Run4LessPlugin extends Plugin {
     @Subscribe
     public void onClientTick(final ClientTick clientTick) {
         if (client.getGameState() != GameState.LOGGED_IN || client.isMenuOpen()) return;
+        if(!panel.getIcon().equals(logo)) {
+            clientToolbar.removeNavigation(panel);
+            panel = NavigationButton.builder()
+                    .tooltip("Bone Calculator")
+                    .icon(logo)
+                    .priority(10)
+                    .panel(panel.getPanel())
+                    .build();
+            if (panel == null) log.info("Navigation was null");
+            if (clientToolbar == null) log.info("ClientToolbar was null");
+            clientToolbar.addNavigation(panel);
+        }
         if (config.offerAllEnabled()) {
                 final MenuEntry[] menuEntries = client.getMenuEntries();
             int index = 0;
@@ -388,22 +382,48 @@ public class Run4LessPlugin extends Plugin {
         return configManager.getConfig(Run4LessConfig.class);
     }
 
-    public static synchronized BufferedImage getLogo(Class<?> c, String url, int dimX, int dimY){
-        BufferedImage image = ImageUtil.getResourceStreamFromClass(c, "/R4L.png");
-        if(!url.equals("") && !url.equalsIgnoreCase("none")) {
-            try {
-                image = ImageIO.read(new URL(url));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if(dimX <= 0 || dimY <= 0) return image;
-        Image tmp = image.getScaledInstance(dimX, dimY, Image.SCALE_SMOOTH);
-        BufferedImage dimg = new BufferedImage(dimX, dimY, BufferedImage.TYPE_INT_ARGB);
+    private static BufferedImage resize(BufferedImage img){
+        Image tmp = img.getScaledInstance(60, 60, Image.SCALE_SMOOTH);
+        BufferedImage image = new BufferedImage(60, 60, BufferedImage.TYPE_INT_ARGB);
 
-        Graphics2D g2d = dimg.createGraphics();
+        Graphics2D g2d = image.createGraphics();
         g2d.drawImage(tmp, 0, 0, null);
         g2d.dispose();
-        return dimg;
+        return image;
+    }
+
+    private void update(BufferedImage logo){
+        Run4LessPanel.init(logo);
+        logo = resize(logo);
+        run4LessOverlay.setLogo(logo);
+        if ((isRunner || isHost) && !config.logoUrl().equalsIgnoreCase("none") ) overlayManager.add(run4LessOverlay);
+    }
+
+    private void updateLogo(Class<?> c, String url){
+        logo = ImageUtil.getResourceStreamFromClass(c, "/R4L.png");
+        overlayManager.remove(run4LessOverlay);
+        if(!url.equals("") && !url.equalsIgnoreCase("none")) {
+            OkHttpClient client = new OkHttpClient();
+            Request req = new Request.Builder().url(url).build();
+            client.newCall(req).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                    update(logo);
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                    try (ResponseBody responseBody = response.body()) {
+                        synchronized (ImageIO.class) {
+                            logo = resize(ImageIO.read(responseBody.byteStream()));
+                            update(logo);
+                        }
+                    }
+                }
+            });
+        } else {
+            update(logo);
+        }
     }
 }

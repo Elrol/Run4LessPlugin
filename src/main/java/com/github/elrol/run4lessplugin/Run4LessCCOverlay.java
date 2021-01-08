@@ -2,10 +2,7 @@ package com.github.elrol.run4lessplugin;
 
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.FriendsChatManager;
-import net.runelite.api.FriendsChatRank;
-import net.runelite.api.Player;
+import net.runelite.api.*;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.game.FriendChatManager;
 import net.runelite.client.ui.overlay.Overlay;
@@ -65,10 +62,13 @@ public class Run4LessCCOverlay extends Overlay {
     private LineComponent colorMessage(ChatMessage msg, String name){
         Color color = config.ccColor();
         if(client.getFriendsChatManager() != null){
-            FriendsChatRank rank = client.getFriendsChatManager().findByName(msg.getName()).getRank();
-            if(rank != null){
-                if(rank != FriendsChatRank.UNRANKED) color = config.ccRColor();
-                if(rank.equals(FriendsChatRank.FRIEND)) color = config.ccHostColor();
+            FriendsChatMember f = client.getFriendsChatManager().findByName(msg.getName());
+            if(f != null) {
+                FriendsChatRank rank = f.getRank();
+                if (rank != null) {
+                    if (rank != FriendsChatRank.UNRANKED) color = config.ccRColor();
+                    if (rank.equals(FriendsChatRank.FRIEND)) color = config.ccHostColor();
+                }
             }
             if(msg.getMessageNode().getName().equalsIgnoreCase(name))
                 color = config.ccSColor();

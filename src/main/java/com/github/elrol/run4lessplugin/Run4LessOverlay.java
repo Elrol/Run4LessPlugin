@@ -1,6 +1,8 @@
 package com.github.elrol.run4lessplugin;
 
+import com.google.inject.Inject;
 import net.runelite.client.ui.overlay.Overlay;
+import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.components.ComponentOrientation;
@@ -22,15 +24,12 @@ public class Run4LessOverlay extends Overlay {
     public Run4LessOverlay(){
         setPriority(OverlayPriority.HIGHEST);
         setPosition(OverlayPosition.TOP_LEFT);
-        setPreferredSize(new Dimension(20,20));
         panelComponent.setOrientation(ComponentOrientation.HORIZONTAL);
-        panelComponent.getChildren().add(new ImageComponent(Run4LessPlugin.getLogo(getClass(), url, 60,60)));
     }
 
-    public void setLogo(String url){
-        this.url = url;
+    public void setLogo(BufferedImage logo){
         panelComponent.getChildren().clear();
-        if(!url.equalsIgnoreCase("none"))panelComponent.getChildren().add(new ImageComponent(Run4LessPlugin.getLogo(getClass(), url, 60,60)));
+        panelComponent.getChildren().add(new ImageComponent(logo));
     }
 
     @Override
