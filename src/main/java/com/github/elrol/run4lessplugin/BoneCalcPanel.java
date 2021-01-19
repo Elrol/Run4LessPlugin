@@ -30,7 +30,7 @@ public class BoneCalcPanel extends JPanel {
             boneQty.setText("" + bones);
             int p = parseString(price.getText());
             price.setText("" + p);
-            int total = Math.round((((float)bones) / 26.0F) * (float)p);
+            double total = (Math.floor((((float)bones)) / 26.0F) * (float)p);
             DecimalFormat formatter = new DecimalFormat("#,###");
             totalCost.setText(formatter.format(total));
         });
