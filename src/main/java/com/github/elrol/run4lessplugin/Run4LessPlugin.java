@@ -28,6 +28,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -112,6 +114,8 @@ public class Run4LessPlugin extends Plugin {
         overlayManager.remove(run4LessHostOverlay);
         clientToolbar.removeNavigation(panel);
         menuManager.get().removePlayerMenuItem(setClient);
+        configManager.setConfiguration("run4less", "clientName", "");
+        stats.updateRun("");
         super.shutDown();
     }
 
@@ -145,50 +149,6 @@ public class Run4LessPlugin extends Plugin {
                 client.addChatMessage(message.getType(), message.getName(), temp[0] + "ing " + temp[1] + " bones would be " + price, message.getSender());
                 log.debug(temp[0] + "ing " + temp[1] + " bones would be " + price);
             }
-            if (message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()) {
-                Widget tradingWith = client.getWidget(334, 30);
-                if (tradingWith != null) {
-                    String rsn = tradingWith.getText().replace("Trading with:<br>", "");
-                    if (rsn.equalsIgnoreCase(config.clientName())) {
-                        Widget partnerTrades = client.getWidget(334, 29);
-                        Widget offeredTrades = client.getWidget(334, 28);
-
-                        if (partnerTrades != null && offeredTrades != null) {
-                            int i = 0;
-                            int coins = 0;
-                            int notes = 0;
-                            int qty = 0;
-                            String bones = "";
-                            String noted = "";
-                            for (Widget w : partnerTrades.getChildren()) {
-                                String text = w.getText();
-                                if (text.startsWith("Coins")) {
-                                    if (text.contains("(")) text = text.split("[(]")[1];
-                                    else text = text.split("<col=ffffff> x <col=ffff00>")[1];
-                                    text = text.replace(",", "").replace(")", "");
-                                    coins += Integer.parseInt(text);
-                                } else if (text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")) {
-                                    String[] temp = text.split("<col=ffffff> x <col=ffff00>");
-                                    noted = temp[0];
-                                    notes = Integer.parseInt(temp[1]);
-                                } else if (text.toLowerCase().contains("bones")) {
-                                    qty--;
-                                }
-                            }
-                            for (Widget w : offeredTrades.getChildren()) {
-                                if (w == null) continue;
-                                log.debug("[" + i++ + "]:" + w.getText());
-                                String s = w.getText().toLowerCase();
-                                if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
-                                    bones = w.getText();
-                                    qty++;
-                                }
-                            }
-                            stats.addRun(rsn, bones, qty, coins, notes, noted);
-                        }
-                    }
-                }
-            }
             String sender = message.getName();
             if (!sender.isEmpty()) {
                 FriendsChatMember p = manager.findByName(sender);
@@ -203,6 +163,51 @@ public class Run4LessPlugin extends Plugin {
                             hosting.add(p.getName());
                         }
                         run4LessHostOverlay.init(hosting);
+                    }
+                }
+            }
+        }
+        if (message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()) {
+            Widget tradingWith = client.getWidget(334, 30);
+            if (tradingWith != null) {
+                String rsn = tradingWith.getText().replace("Trading with:<br>", "");
+                if (rsn.equalsIgnoreCase(config.clientName())) {
+                    Widget partnerTrades = client.getWidget(334, 29);
+                    Widget offeredTrades = client.getWidget(334, 28);
+
+                    if (partnerTrades != null && offeredTrades != null) {
+                        int i = 0;
+                        int coins = 0;
+                        int notes = 0;
+                        int qty = 0;
+                        String bones = "";
+                        String noted = "";
+                        for (Widget w : partnerTrades.getChildren()) {
+                            String text = w.getText();
+                            if (text.startsWith("Coins")) {
+                                if (text.contains("(")) text = text.split("[(]")[1];
+                                else text = text.split("<col=ffffff> x <col=ffff00>")[1];
+                                text = text.replace(",", "").replace(")", "");
+                                coins += Integer.parseInt(text);
+                            } else if (text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")) {
+                                String[] temp = text.split("<col=ffffff> x <col=ffff00>");
+                                noted = temp[0];
+                                notes = Integer.parseInt(temp[1]);
+                            } else if (text.toLowerCase().contains("bones")) {
+                                qty--;
+                            }
+                        }
+                        for (Widget w : offeredTrades.getChildren()) {
+                            if (w == null) continue;
+                            log.debug("[" + i++ + "]:" + w.getText());
+                            String s = w.getText().toLowerCase();
+                            if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
+                                bones = w.getText();
+                                qty++;
+                            }
+                        }
+                        log.info("Adding Run");
+                        stats.addRun(rsn, bones, qty, coins, notes, noted);
                     }
                 }
             }
@@ -230,11 +235,8 @@ public class Run4LessPlugin extends Plugin {
                 overlayManager.remove(run4LessCCOverlay);
             }
             overlayManager.remove(run4LessOverlay);
-            FriendsChatManager manager = client.getFriendsChatManager();
-            Player player = client.getLocalPlayer();
             updateLogo(getClass(), config.logoUrl());
-            //if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
-            //else overlayManager.remove(run4LessHostOverlay);
+            stats.updateRun(config.clientName());
         }
     }
 
@@ -362,7 +364,7 @@ public class Run4LessPlugin extends Plugin {
     }
 
     @Subscribe
-    public void onPlayerMenuOptionClicked(PlayerMenuOptionClicked event){
+    public void onMenuOptionClicked(MenuOptionClicked event){
         if (event.getMenuOption().equals(setClient)){
             configManager.setConfiguration("run4less", "clientName", Text.removeTags(event.getMenuTarget()));
         }
