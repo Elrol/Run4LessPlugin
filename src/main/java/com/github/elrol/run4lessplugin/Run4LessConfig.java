@@ -30,15 +30,6 @@ public interface Run4LessConfig extends Config {
         default boolean autoSSEnabled() { return false; }
 
         @ConfigItem(
-                position = 2,
-                keyName = "hideRE",
-                name = "Hide Random Events [NYI]",
-                description = "Will hide the npcs from random events.",
-                section = settings
-        )
-        default boolean hideREEnabled() { return false; }
-
-        @ConfigItem(
                 position = 3,
                 keyName = "filterTrade",
                 name = "Filter Trade Messages",
@@ -140,17 +131,6 @@ public interface Run4LessConfig extends Config {
         default Color ccHostColor() { return Color.RED; }
 
     //////////////////////////
-    //--------Client--------//
-    //////////////////////////
-    @ConfigSection(
-            name = "Client Settings [NYI]",
-            description = "Settings related to Bone Runner Clients",
-            position = 200
-    )
-    String clientSettings = "clientSettings";
-
-
-    //////////////////////////
     //--------Runner--------//
     //////////////////////////
     @ConfigSection(
@@ -204,6 +184,15 @@ public interface Run4LessConfig extends Config {
                 section = runnerSettings
         )
         default boolean enablePing() { return true; }
+
+        @ConfigItem(
+                position = 307,
+                keyName = "logoScale",
+                name = "Logo Scale",
+                description = "Will change the size of the Logo. (x/10)",
+                section = runnerSettings
+        )
+        default int logoScale() { return 10; }
 
     /////////////////////////
     //--------Hosts--------//

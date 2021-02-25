@@ -94,7 +94,7 @@ public class Run4LessPlugin extends Plugin {
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
         logo = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
-        logo = resize(logo);
+        logo = resize(logo, config.logoScale());
         panel = NavigationButton.builder()
                 .tooltip("Bone Calculator")
                 .icon(logo)
@@ -154,7 +154,7 @@ public class Run4LessPlugin extends Plugin {
                 FriendsChatMember p = manager.findByName(sender);
                 if (p != null) {
                     FriendsChatRank rank = p.getRank();
-                    if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing())
+                    if (rank == FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing()) // TODO Invert the check !
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager, notificationOverlay);
                     if(hosts.contains(p.getName()) && message.getMessage().contains("@host")){
                         if(hosting.contains(p.getName())){
@@ -251,7 +251,7 @@ public class Run4LessPlugin extends Plugin {
                     isHost = true;
                     updateLogo(getClass(), config.logoUrl());
                     return;
-                } else if(!rank.equals(FriendsChatRank.UNRANKED)) {
+                } else if(rank.equals(FriendsChatRank.UNRANKED)) { // TODO Invert check !
                     isRunner = true;
                     updateLogo(getClass(), config.logoUrl());
                     return;
@@ -366,7 +366,8 @@ public class Run4LessPlugin extends Plugin {
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event){
         if (event.getMenuOption().equals(setClient)){
-            configManager.setConfiguration("run4less", "clientName", Text.removeTags(event.getMenuTarget()));
+            String name = event.getMenuTarget().split(" {2}\\(level-")[0];
+            configManager.setConfiguration("run4less", "clientName", Text.removeTags(name));
         }
     }
 
@@ -382,9 +383,11 @@ public class Run4LessPlugin extends Plugin {
         return configManager.getConfig(Run4LessConfig.class);
     }
 
-    private static BufferedImage resize(BufferedImage img){
-        Image tmp = img.getScaledInstance(60, 60, Image.SCALE_SMOOTH);
-        BufferedImage image = new BufferedImage(60, 60, BufferedImage.TYPE_INT_ARGB);
+    private static BufferedImage resize(BufferedImage img, int s){
+        float scale = (float)s / 10.0f;
+        int size = Math.round(60.0f * scale);
+        Image tmp = img.getScaledInstance(size, size, Image.SCALE_SMOOTH);
+        BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D g2d = image.createGraphics();
         g2d.drawImage(tmp, 0, 0, null);
@@ -394,7 +397,7 @@ public class Run4LessPlugin extends Plugin {
 
     private void update(BufferedImage logo){
         Run4LessPanel.init(logo);
-        logo = resize(logo);
+        logo = resize(logo, config.logoScale());
         run4LessOverlay.setLogo(logo);
         if ((isRunner || isHost) && !config.logoUrl().equalsIgnoreCase("none") ) overlayManager.add(run4LessOverlay);
     }
@@ -418,7 +421,7 @@ public class Run4LessPlugin extends Plugin {
                         synchronized (ImageIO.class) {
                             BufferedImage temp = ImageIO.read(responseBody.byteStream());
                             if(temp != null)
-                                logo = resize(temp);
+                                logo = resize(temp, config.logoScale());
                             update(logo);
                         }
                     }

@@ -1,5 +1,6 @@
 package com.github.elrol.run4lessplugin;
 
+import com.google.inject.Inject;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
@@ -10,6 +11,9 @@ import java.awt.*;
 
 public class RunnerNotificationOverlay extends Overlay {
 
+    @Inject
+    private Run4LessConfig config;
+
     private final PanelComponent panelComponent = new PanelComponent();
     private String text = "";
 
@@ -17,19 +21,23 @@ public class RunnerNotificationOverlay extends Overlay {
         this.text = text;
         setPriority(OverlayPriority.HIGHEST);
         setPosition(OverlayPosition.TOP_CENTER);
-
-        panelComponent.setPreferredSize(new Dimension(200,0));
-        panelComponent.setWrap(false);
-        panelComponent.getChildren().add(TitleComponent.builder().text(" \n" + text + "\n ").color(state ? Color.white : Color.red).build());
+        flash(state);
     }
 
     public void flash(boolean state){
+        Dimension dim = new Dimension(scale(300), scale(100));
+        panelComponent.setPreferredSize(dim);
         panelComponent.getChildren().clear();
-        panelComponent.getChildren().add(TitleComponent.builder().text(text).color(state ? Color.white : Color.red).build());
+        panelComponent.setWrap(false);
+        panelComponent.getChildren().add(TitleComponent.builder().text(text).color(state ? Color.white : Color.red).preferredSize(new Dimension(scale(100), scale(300))).build());
     }
 
     public void clearText(){ text = ""; }
     public boolean isNew(){ return text.equals(""); }
+    public int scale(int base) {
+        float scale = 10.0f / 10.f;
+        return Math.round(scale * (float)base);
+    }
 
     @Override
     public Dimension render(Graphics2D graphics) {
