@@ -154,7 +154,7 @@ public class Run4LessPlugin extends Plugin {
                 FriendsChatMember p = manager.findByName(sender);
                 if (p != null) {
                     FriendsChatRank rank = p.getRank();
-                    if (rank == FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing()) // TODO Invert the check !
+                    if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing())
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager, notificationOverlay);
                     if(hosts.contains(p.getName()) && message.getMessage().contains("@host")){
                         if(hosting.contains(p.getName())){
@@ -251,7 +251,7 @@ public class Run4LessPlugin extends Plugin {
                     isHost = true;
                     updateLogo(getClass(), config.logoUrl());
                     return;
-                } else if(rank.equals(FriendsChatRank.UNRANKED)) { // TODO Invert check !
+                } else if(!rank.equals(FriendsChatRank.UNRANKED)) {
                     isRunner = true;
                     updateLogo(getClass(), config.logoUrl());
                     return;
