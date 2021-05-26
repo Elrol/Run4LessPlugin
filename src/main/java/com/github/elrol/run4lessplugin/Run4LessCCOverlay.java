@@ -4,9 +4,7 @@ import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.client.game.FriendChatManager;
 import net.runelite.client.ui.overlay.Overlay;
-import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.components.*;
@@ -23,8 +21,8 @@ public class Run4LessCCOverlay extends Overlay {
     @Inject
     private Client client;
 
-    private ArrayList<ChatMessage> clanMessages = new ArrayList<>();
-    private PanelComponent panelComponent = new PanelComponent();
+    private final ArrayList<ChatMessage> clanMessages = new ArrayList<>();
+    private final PanelComponent panelComponent = new PanelComponent();
 
     public Run4LessCCOverlay(){
         setPriority(OverlayPriority.HIGHEST);
