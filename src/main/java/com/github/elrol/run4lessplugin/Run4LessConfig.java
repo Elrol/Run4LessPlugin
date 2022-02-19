@@ -64,7 +64,7 @@ public interface Run4LessConfig extends Config {
                 description = "The owner of the group you are in.",
                 section = clanchat
         )
-        default String ccName() { return "Run4Less"; }
+        default String ccName() { return "RunBones"; }
 
         @ConfigItem(
                 position = 102,
