@@ -96,6 +96,7 @@ public class Run4LessPlugin extends Plugin {
 
     @Override
     protected void startUp() throws Exception {
+        INSTANCE = this;
         hostData.load(config.hostJson());
         run4LessHostOverlay.init(hosting);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
@@ -111,7 +112,6 @@ public class Run4LessPlugin extends Plugin {
         clientToolbar.addNavigation(panel);
         updateLogo(getClass(), config.logoUrl());
         super.startUp();
-        INSTANCE = this;
     }
 
     @Override

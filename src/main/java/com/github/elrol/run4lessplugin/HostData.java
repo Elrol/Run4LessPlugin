@@ -1,5 +1,6 @@
 package com.github.elrol.run4lessplugin;
 
+import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -28,21 +29,31 @@ public class HostData {
         if(hostJson == null || hostJson.isEmpty()) return;
         //OkHttpClient client = new OkHttpClient();
         Request req = new Request.Builder().url(hostJson).build();
-        Run4LessPlugin.INSTANCE.httpClient.newCall(req).enqueue(new Callback() {
-            @Override
-            @EverythingIsNonNull
-            public void onFailure(Call call, IOException e) {}
+        if(Run4LessPlugin.INSTANCE == null) return;
+        OkHttpClient httpClient = Run4LessPlugin.INSTANCE.httpClient;
+        if(httpClient != null) {
+        httpClient.newCall(req).enqueue(new Callback() {
+                @Override
+                @EverythingIsNonNull
+                public void onFailure(Call call, IOException e) {
+                }
 
-            @Override
-            @EverythingIsNonNull
-            public void onResponse(Call call, Response response) throws IOException {
-                assert response.body() != null;
-                InputStreamReader reader = new InputStreamReader(response.body().byteStream(), StandardCharsets.UTF_8);
-                HostData data = Run4LessPlugin.INSTANCE.gson.fromJson(reader, HostData.class);
-                Run4LessPlugin.hostData.OSRS_Hosts = data.OSRS_Hosts;
-                reader.close();
-            }
-        });
+                @Override
+                @EverythingIsNonNull
+                public void onResponse(Call call, Response response) throws IOException {
+                    assert response.body() != null;
+                    InputStreamReader reader = new InputStreamReader(response.body().byteStream(), StandardCharsets.UTF_8);
+
+                    if(Run4LessPlugin.INSTANCE == null) return;
+                    Gson gson = Run4LessPlugin.INSTANCE.gson;
+                    if(gson != null) {
+                        HostData data = gson.fromJson(reader, HostData.class);
+                        Run4LessPlugin.hostData.OSRS_Hosts = data.OSRS_Hosts;
+                    }
+                    reader.close();
+                }
+            });
+        }
     }
 
     @Override

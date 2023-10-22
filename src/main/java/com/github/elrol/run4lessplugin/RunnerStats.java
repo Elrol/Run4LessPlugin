@@ -79,19 +79,23 @@ public class RunnerStats {
         if(!dataLoc.exists()) dataLoc.mkdirs();
         log.debug("DataLoc: " + dataLoc.getAbsoluteFile());
         try(FileWriter writer = new FileWriter(new File(dataLoc, "rundata.json"))) {
-            Run4LessPlugin.INSTANCE.gson.toJson(this, writer);
+            if(Run4LessPlugin.INSTANCE == null) return;
+            Gson gson = Run4LessPlugin.INSTANCE.gson;
+            if(gson != null)
+                gson.toJson(this, writer);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public static RunnerStats load() {
-        RunnerStats stats;
+        RunnerStats stats = new RunnerStats();
         try {
-            stats = Run4LessPlugin.INSTANCE.gson.fromJson(new FileReader(new File(dataLoc, "rundata.json")), RunnerStats.class);
-        } catch (FileNotFoundException e) {
-            stats = new RunnerStats();
-        }
+            if(Run4LessPlugin.INSTANCE == null) return stats;
+            Gson gson = Run4LessPlugin.INSTANCE.gson;
+            if(gson != null)
+                stats = gson.fromJson(new FileReader(new File(dataLoc, "rundata.json")), RunnerStats.class);
+        } catch (FileNotFoundException ignored) {}
         return stats;
     }
 
