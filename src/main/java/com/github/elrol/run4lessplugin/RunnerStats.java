@@ -86,10 +86,9 @@ public class RunnerStats {
     }
 
     public static RunnerStats load() {
-        Gson gson = new Gson();
         RunnerStats stats;
         try {
-            stats = gson.fromJson(new FileReader(new File(dataLoc, "rundata.json")), RunnerStats.class);
+            stats = Run4LessPlugin.INSTANCE.gson.fromJson(new FileReader(new File(dataLoc, "rundata.json")), RunnerStats.class);
         } catch (FileNotFoundException e) {
             stats = new RunnerStats();
         }
