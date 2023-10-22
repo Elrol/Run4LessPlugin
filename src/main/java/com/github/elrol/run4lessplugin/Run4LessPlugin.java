@@ -1,6 +1,7 @@
 package com.github.elrol.run4lessplugin;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
@@ -22,6 +23,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 import okhttp3.*;
+import okhttp3.internal.annotations.EverythingIsNonNull;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -38,6 +40,13 @@ import java.util.List;
         tags = {"bone dash", "menu", "running", "bone"}
 )
 public class Run4LessPlugin extends Plugin {
+    protected static Run4LessPlugin INSTANCE;
+    @Inject
+    protected Gson gson;
+
+    @Inject
+    protected OkHttpClient httpClient;
+
     @Inject
     private Run4LessConfig config;
 
@@ -102,6 +111,7 @@ public class Run4LessPlugin extends Plugin {
         clientToolbar.addNavigation(panel);
         updateLogo(getClass(), config.logoUrl());
         super.startUp();
+        INSTANCE = this;
     }
 
     @Override
@@ -413,22 +423,26 @@ public class Run4LessPlugin extends Plugin {
     }
 
     private void updateLogo(Class<?> c, String url){
-        logo = ImageUtil.getResourceStreamFromClass(c, "/OIG.png");
+        logo = ImageUtil.loadImageResource(c, "/OIG.png");
         overlayManager.remove(run4LessOverlay);
         if(!url.equals("") && !url.equalsIgnoreCase("none")) {
-            OkHttpClient client = new OkHttpClient();
+            //OkHttpClient client = new OkHttpClient();
+
             Request req = new Request.Builder().url(url).build();
-            client.newCall(req).enqueue(new Callback() {
+            httpClient.newCall(req).enqueue(new Callback() {
                 @Override
+                @EverythingIsNonNull
                 public void onFailure(Call call, IOException e) {
                     update(logo);
                     e.printStackTrace();
                 }
 
                 @Override
+                @EverythingIsNonNull
                 public void onResponse(Call call, Response response) throws IOException {
                     try (ResponseBody responseBody = response.body()) {
                         synchronized (ImageIO.class) {
+                            assert responseBody != null;
                             BufferedImage temp = ImageIO.read(responseBody.byteStream());
                             if(temp != null)
                                 logo = resize(temp, config.logoScale());

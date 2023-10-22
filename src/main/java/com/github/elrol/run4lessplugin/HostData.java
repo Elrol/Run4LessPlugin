@@ -1,9 +1,9 @@
 package com.github.elrol.run4lessplugin;
 
-import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import okhttp3.internal.annotations.EverythingIsNonNull;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,18 +25,20 @@ public class HostData {
     }
 
     public void load(String hostJson){
-        Gson gson = new Gson();
         if(hostJson == null || hostJson.isEmpty()) return;
-        OkHttpClient client = new OkHttpClient();
+        //OkHttpClient client = new OkHttpClient();
         Request req = new Request.Builder().url(hostJson).build();
-        client.newCall(req).enqueue(new Callback() {
+        Run4LessPlugin.INSTANCE.httpClient.newCall(req).enqueue(new Callback() {
             @Override
+            @EverythingIsNonNull
             public void onFailure(Call call, IOException e) {}
 
             @Override
+            @EverythingIsNonNull
             public void onResponse(Call call, Response response) throws IOException {
+                assert response.body() != null;
                 InputStreamReader reader = new InputStreamReader(response.body().byteStream(), StandardCharsets.UTF_8);
-                HostData data = gson.fromJson(reader, HostData.class);
+                HostData data = Run4LessPlugin.INSTANCE.gson.fromJson(reader, HostData.class);
                 Run4LessPlugin.hostData.OSRS_Hosts = data.OSRS_Hosts;
                 reader.close();
             }

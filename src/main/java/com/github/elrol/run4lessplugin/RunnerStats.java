@@ -1,13 +1,10 @@
 package com.github.elrol.run4lessplugin;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
 
 import java.io.*;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,11 +76,10 @@ public class RunnerStats {
     }
 
     public void save() {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
         if(!dataLoc.exists()) dataLoc.mkdirs();
         log.debug("DataLoc: " + dataLoc.getAbsoluteFile());
         try(FileWriter writer = new FileWriter(new File(dataLoc, "rundata.json"))) {
-            gson.toJson(this, writer);
+            Run4LessPlugin.INSTANCE.gson.toJson(this, writer);
         } catch (IOException e) {
             e.printStackTrace();
         }
