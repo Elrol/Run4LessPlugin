@@ -34,8 +34,8 @@ import java.util.List;
 @Slf4j
 @PluginDescriptor(
         name = "Bone Running Plugin",
-        description = "A plugin made for Bone Running, commissioned by the Run4Less group",
-        tags = {"run4less", "menu", "running", "bone"}
+        description = "A plugin made for Bone Running, commissioned by the Run4Less group and updated for Bone Dash",
+        tags = {"bone dash", "menu", "running", "bone"}
 )
 public class Run4LessPlugin extends Plugin {
     @Inject
@@ -91,7 +91,7 @@ public class Run4LessPlugin extends Plugin {
         run4LessHostOverlay.init(hosting);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
-        logo = ImageUtil.getResourceStreamFromClass(getClass(), "/R4L.png");
+        logo = ImageUtil.loadImageResource(getClass(), "/OIG.png");
         logo = resize(logo, config.logoScale());
         panel = NavigationButton.builder()
                 .tooltip("Bone Calculator")
@@ -117,11 +117,20 @@ public class Run4LessPlugin extends Plugin {
         super.shutDown();
     }
 
+    private boolean isRightClan() {
+        FriendsChatManager manager = client.getFriendsChatManager();
+        if(manager == null)  return false;
+        return Text.standardize(manager.getOwner()).equalsIgnoreCase(Text.standardize(config.ccName()));
+    }
+
     @Subscribe(priority = -2)
     public void onChatMessage(ChatMessage message) {
         FriendsChatManager manager = client.getFriendsChatManager();
-        if (manager != null && manager.getOwner().equalsIgnoreCase(config.ccName()) && message.getType().equals(ChatMessageType.FRIENDSCHAT)) {
-            if (config.splitCCEnabled() && config.ccLines() > 0) {
+        boolean ccEnabled = config.splitCCEnabled();
+        int ccLines = config.ccLines();
+
+        if (isRightClan() && message.getType().equals(ChatMessageType.FRIENDSCHAT)) {
+            if (ccEnabled && ccLines > 0) {
                 final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
                 if (chat != null && !chat.isHidden()) {
                     run4LessCCOverlay.init(chat.getWidth(), message);
@@ -131,10 +140,10 @@ public class Run4LessPlugin extends Plugin {
             if (message.getMessage().toLowerCase().contains("!bones ")) {
                 log.debug("Ran bones command");
                 String cmd = message.getMessage().toLowerCase().split("!bones ")[1];
-                String[] temp = cmd.split(" ");
+                String[] temp = cmd.replace("!bones", "").split(" ");
                 int rate = 0;
-                if (temp[0].equalsIgnoreCase("afk")) rate = 20000;
-                else if (temp[0].equalsIgnoreCase("tick")) rate = 18000;
+                if (temp[0].equalsIgnoreCase("afk")) rate = 25000;
+                else if (temp[0].equalsIgnoreCase("tick")) rate = 15000;
                 else client.addChatMessage(message.getType(), message.getName(), "Invalid argument [" + temp[0] + "]. Options are [tick/afk]", message.getSender());
 
                 int qty = Integer.parseInt(temp[1]);
@@ -152,7 +161,10 @@ public class Run4LessPlugin extends Plugin {
                 FriendsChatMember p = manager.findByName(sender);
                 if (p != null) {
                     FriendsChatRank rank = p.getRank();
-                    if (rank != FriendsChatRank.UNRANKED && message.getMessage().contains("@runner") && isRunner && config.enablePing())
+                    String msg = message.getMessage();
+                    boolean runner = msg.equalsIgnoreCase("@runner");
+                    boolean ping = config.enablePing();
+                    if (rank != FriendsChatRank.UNRANKED && runner && isRunner && ping)
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager, notificationOverlay);
                     if(hosts.contains(p.getName()) && message.getMessage().contains("@host")){
                         if(hosting.contains(p.getName())){
@@ -224,7 +236,7 @@ public class Run4LessPlugin extends Plugin {
 
     @Subscribe
     public void onConfigChanged(ConfigChanged event){
-        if(event.getGroup().equals("run4less")){
+        if(event.getGroup().equals("bone dash")){
             if(config.splitCCEnabled()) {
                 final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
                 if(chat != null) run4LessCCOverlay.init(chat.getWidth());
@@ -243,7 +255,7 @@ public class Run4LessPlugin extends Plugin {
         clientThread.invokeLater(() -> {
             FriendsChatManager manager = client.getFriendsChatManager();
             Player player = client.getLocalPlayer();
-            if(manager != null && player != null && manager.getOwner().equalsIgnoreCase(config.ccName())){
+            if(player != null && isRightClan()){
                 FriendsChatRank rank = manager.findByName(player.getName()).getRank();
                 if(rank.equals(FriendsChatRank.FRIEND)){
                     isHost = true;
@@ -401,7 +413,7 @@ public class Run4LessPlugin extends Plugin {
     }
 
     private void updateLogo(Class<?> c, String url){
-        logo = ImageUtil.getResourceStreamFromClass(c, "/R4L.png");
+        logo = ImageUtil.getResourceStreamFromClass(c, "/OIG.png");
         overlayManager.remove(run4LessOverlay);
         if(!url.equals("") && !url.equalsIgnoreCase("none")) {
             OkHttpClient client = new OkHttpClient();
