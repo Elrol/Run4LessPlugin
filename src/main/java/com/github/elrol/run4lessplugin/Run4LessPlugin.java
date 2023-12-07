@@ -29,9 +29,14 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.sql.*;
+import java.sql.Connection;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @PluginDescriptor(
@@ -48,7 +53,7 @@ public class Run4LessPlugin extends Plugin {
     protected OkHttpClient httpClient;
 
     @Inject
-    private Run4LessConfig config;
+    protected Run4LessConfig config;
 
     @Inject
     private Client client;
@@ -87,18 +92,15 @@ public class Run4LessPlugin extends Plugin {
 
     private final ArrayListMultimap<String, Integer> indexes = ArrayListMultimap.create();
     public static RunnerStats stats = RunnerStats.load();
-    public static HostData hostData = new HostData();
     public static final String setClient = "Set as Client";
     boolean shouldSpam = true;
-    public ArrayList<String> hosts = new ArrayList<>();
-    public ArrayList<String> hosting = new ArrayList<>();
     public static BufferedImage logo;
+
+    private ScheduledFuture<?> updateSchedule;
 
     @Override
     protected void startUp() throws Exception {
         INSTANCE = this;
-        hostData.load(config.hostJson());
-        run4LessHostOverlay.init(hosting);
         if(client != null) menuManager.get().addPlayerMenuItem(setClient);
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
         logo = ImageUtil.loadImageResource(getClass(), "/OIG.png");
@@ -124,6 +126,7 @@ public class Run4LessPlugin extends Plugin {
         menuManager.get().removePlayerMenuItem(setClient);
         configManager.setConfiguration("run4less", "clientName", "");
         stats.updateRun("");
+        updateSchedule.cancel(true);
         super.shutDown();
     }
 
@@ -131,6 +134,14 @@ public class Run4LessPlugin extends Plugin {
         FriendsChatManager manager = client.getFriendsChatManager();
         if(manager == null)  return false;
         return Text.standardize(manager.getOwner()).equalsIgnoreCase(Text.standardize(config.ccName()));
+    }
+
+    private void SetHostUpdate() {
+        if(config.hostEnabled() && updateSchedule == null) {
+            Runnable hostUpdate = () -> run4LessHostOverlay.init();
+            ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+            updateSchedule = executorService.scheduleAtFixedRate(hostUpdate, 0, config.hostUpdate(), TimeUnit.SECONDS);
+        }
     }
 
     @Subscribe(priority = -2)
@@ -176,14 +187,6 @@ public class Run4LessPlugin extends Plugin {
                     boolean ping = config.enablePing();
                     if (rank != FriendsChatRank.UNRANKED && runner && isRunner && ping)
                         TimedNotifier.init("Bone Runner Requested", 30, overlayManager, notificationOverlay);
-                    if(hosts.contains(p.getName()) && message.getMessage().contains("@host")){
-                        if(hosting.contains(p.getName())){
-                            hosting.remove(p.getName());
-                        } else {
-                            hosting.add(p.getName());
-                        }
-                        run4LessHostOverlay.init(hosting);
-                    }
                 }
             }
         }
@@ -247,6 +250,8 @@ public class Run4LessPlugin extends Plugin {
     @Subscribe
     public void onConfigChanged(ConfigChanged event){
         if(event.getGroup().equals("bone dash")){
+
+
             if(config.splitCCEnabled()) {
                 final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
                 if(chat != null) run4LessCCOverlay.init(chat.getWidth());
@@ -266,56 +271,30 @@ public class Run4LessPlugin extends Plugin {
             FriendsChatManager manager = client.getFriendsChatManager();
             Player player = client.getLocalPlayer();
             if(player != null && isRightClan()){
+                if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
                 FriendsChatRank rank = manager.findByName(player.getName()).getRank();
                 if(rank.equals(FriendsChatRank.FRIEND)){
                     isHost = true;
                     updateLogo(getClass(), config.logoUrl());
+                    SetHostUpdate();
                     return;
                 } else if(!rank.equals(FriendsChatRank.UNRANKED)) {
                     isRunner = true;
                     updateLogo(getClass(), config.logoUrl());
+                    SetHostUpdate();
                     return;
                 } else {
                     isRunner = false;
                     isHost = false;
                 }
-                hosts.clear();
-                for(FriendsChatMember member : manager.getMembers()){
-                    if (isPlayerHost(member))
-                        hosts.add(member.getName());
-                    else
-                        hosting.remove(member.getName());
-                }
-                run4LessHostOverlay.init(hosting);
             }
             overlayManager.remove(run4LessOverlay);
-        });
-    }
-
-    private boolean isPlayerHost(FriendsChatMember member){
-        return (member.getRank().equals(FriendsChatRank.FRIEND) && !hosts.contains(member.getName()))
-                || (hostData.getUsers().contains(member.getName()) && !hosts.contains(member.getName()));
-    }
-    @Subscribe
-    public void onFriendsChatMemberJoined(FriendsChatMemberJoined event){
-        FriendsChatMember member = event.getMember();
-        if (isPlayerHost(member)) {
-            hosts.add(member.getName());
-        }
-    }
-
-    @Subscribe
-    public void onFriendsChatMemberLeft(FriendsChatMemberLeft event){
-        Player player = client.getLocalPlayer();
-        if(player != null) {
-            if (event.getMember().getName().equals(player.getName())) {
-                hosts.clear();
-                hosting.clear();
-            } else {
-                hosting.remove(event.getMember().getName());
+            overlayManager.remove(run4LessHostOverlay);
+            if(updateSchedule != null){
+                updateSchedule.cancel(true);
+                updateSchedule = null;
             }
-            run4LessHostOverlay.init(hosting);
-        }
+        });
     }
 
     @Subscribe
@@ -454,5 +433,20 @@ public class Run4LessPlugin extends Plugin {
         } else {
             update(logo);
         }
+    }
+
+    protected ResultSet getQuery(String database, String query) throws SQLException {
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        String url = "jdbc:mysql://discord-wiki-prod.czb1zcmvhicz.us-east-1.rds.amazonaws.com/" + database + "?useUnicode=true&characterEncoding=utf8";
+        String username = "RealStormCEO";
+        String password = "qhxcNj5JoU";
+
+        Connection connection = DriverManager.getConnection(url, username, password);
+        Statement state = connection.createStatement();
+        return state.executeQuery(query);
     }
 }

@@ -231,6 +231,15 @@ public interface Run4LessConfig extends Config {
         )
         default int hostLimit() { return 10; }
 
+        @ConfigItem(
+                position = 404,
+                keyName = "hostUpdate",
+                name = "Host Update Frequency",
+                description = "How often the host overlay updates, in seconds.",
+                section = hostSettings
+        )
+        default int hostUpdate() { return 30; }
+
     /////////////////////////
     //-----Connections-----//
     /////////////////////////
@@ -249,13 +258,4 @@ public interface Run4LessConfig extends Config {
                 section = connectionSettings
         )
         default String logoUrl() { return ""; }
-
-        @ConfigItem(
-                position = 502,
-                keyName = "hostJson",
-                name = "Host Json URL",
-                description = "The URL of the json file.",
-                section = connectionSettings
-        )
-        default String hostJson() { return ""; }
 }

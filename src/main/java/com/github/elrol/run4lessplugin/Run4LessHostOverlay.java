@@ -12,45 +12,61 @@ import net.runelite.client.ui.overlay.components.PanelComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
 import java.awt.*;
+import java.sql.*;
 import java.util.ArrayList;
 
 @Slf4j
 public class Run4LessHostOverlay extends Overlay {
 
-    @Inject
-    private Run4LessConfig config;
-
-    @Inject
-    private Client client;
-
-    private PanelComponent panelComponent = new PanelComponent();
+    private final PanelComponent panelComponent = new PanelComponent();
 
     public Run4LessHostOverlay(){
-        setPriority(OverlayPriority.HIGHEST);
+        setPriority(OverlayPriority.LOW);
         setPosition(OverlayPosition.TOP_LEFT);
-        panelComponent.setPreferredSize(new Dimension(200, 0));
     }
 
-    public void init(ArrayList<String> list){
-        FriendsChatManager manager = client.getFriendsChatManager();
-        if(manager == null){
-            panelComponent.getChildren().clear();
-            return;
-        }
+    public void init(){
+        Color hostColor = Run4LessPlugin.INSTANCE.config.hostColor();
+        ArrayList<Host> hosts = getHosts();
         panelComponent.getChildren().clear();
-        panelComponent.getChildren().add(TitleComponent.builder().text("Active Hosts").color(config.hostColor()).build());
+        TitleComponent title = TitleComponent.builder().text("Active Hosts").color(hostColor).build();
+        panelComponent.getChildren().add(title);
+        panelComponent.getChildren().add(TitleComponent.builder().text("───────────").build());
         int i = 0;
-        for(String username : list){
-            if(i < config.hostLimit()) {
-                int world = manager.findByName(username).getWorld();
-                LineComponent line = LineComponent.builder()
-                        .leftColor(config.hostColor())
-                        .left(username + " : World " + world)
+        for(Host host : hosts){
+            if(i < Run4LessPlugin.INSTANCE.config.hostLimit()) {
+                /**LineComponent line = LineComponent.builder()
+                        .leftColor(hostColor)
+                        .left(host.Username)
+                        //.left(host.Username + " : World " + host.World + " : " + host.loc)
                         .build();
                 panelComponent.getChildren().add(line);
+                 **/
+                panelComponent.getChildren().add(TitleComponent.builder().text(host.Username).color(hostColor).build());
                 i++;
             }
         }
+    }
+
+    private ArrayList<Host> getHosts() {
+        ArrayList<Host> hosts = new ArrayList<>();
+        try {
+            ResultSet rs = Run4LessPlugin.INSTANCE.getQuery("bone_dash_db", "select * from active_hosts");
+            ArrayList<Integer> ids = new ArrayList<>();
+            while(rs.next()){
+                int id = rs.getInt("id");
+                String key = rs.getString("active_hosts_key");
+                String name = rs.getString("name");
+                Date start = rs.getDate("start_time");
+
+                ids.add(id);
+                hosts.add(new Host(key, name, 330, "Rimmington", start));
+            }
+            System.out.println(ids);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return hosts;
     }
 
     @Override
