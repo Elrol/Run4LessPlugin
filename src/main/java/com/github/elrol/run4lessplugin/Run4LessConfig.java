@@ -64,7 +64,7 @@ public interface Run4LessConfig extends Config {
                 description = "The owner of the group you are in.",
                 section = clanchat
         )
-        default String ccName() { return "RunBones"; }
+        default String ccName() { return "Bone Dash"; }
 
         @ConfigItem(
                 position = 102,
@@ -168,7 +168,7 @@ public interface Run4LessConfig extends Config {
         default String clientName() { return ""; }
 
         @ConfigItem(
-                position = 305,
+                position = 307,
                 keyName = "enableStats",
                 name = "Runner Stats",
                 description = "Logs the stats from trading.",
@@ -177,7 +177,7 @@ public interface Run4LessConfig extends Config {
         default boolean enableStats() { return true; }
 
         @ConfigItem(
-                position = 306,
+                position = 308,
                 keyName = "enablePing",
                 name = "Runner Ping",
                 description = "Pings you when a runner is requested.",
@@ -186,7 +186,7 @@ public interface Run4LessConfig extends Config {
         default boolean enablePing() { return true; }
 
         @ConfigItem(
-                position = 307,
+                position = 309,
                 keyName = "logoScale",
                 name = "Logo Scale",
                 description = "Will change the size of the Logo. (x/10)",

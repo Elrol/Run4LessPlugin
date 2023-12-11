@@ -33,6 +33,7 @@ import java.sql.*;
 import java.sql.Connection;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -85,14 +86,16 @@ public class Run4LessPlugin extends Plugin {
     @Inject
     private ConfigManager configManager;
 
-    public static NavigationButton panel;
+    public static NavigationButton button;
+    public static Run4LessPanel panel;
 
     private boolean isRunner = false;
     private boolean isHost = false;
 
     private final ArrayListMultimap<String, Integer> indexes = ArrayListMultimap.create();
-    public static RunnerStats stats = RunnerStats.load();
+    public static RunnerStats stats;
     public static final String setClient = "Set as Client";
+    public static final String removeClient = "Remove as Client";
     boolean shouldSpam = true;
     public static BufferedImage logo;
 
@@ -101,18 +104,24 @@ public class Run4LessPlugin extends Plugin {
     @Override
     protected void startUp() throws Exception {
         INSTANCE = this;
-        if(client != null) menuManager.get().addPlayerMenuItem(setClient);
+        stats = RunnerStats.load();
+        if(client != null) {
+            menuManager.get().addPlayerMenuItem(setClient);
+            menuManager.get().addPlayerMenuItem(removeClient);
+        }
         if(config.splitCCEnabled() && config.ccLines() > 0) overlayManager.add(run4LessCCOverlay);
         logo = ImageUtil.loadImageResource(getClass(), "/OIG.png");
         logo = resize(logo, config.logoScale());
-        panel = NavigationButton.builder()
-                .tooltip("Bone Calculator")
+        panel = new Run4LessPanel();
+        button = NavigationButton.builder()
+                .tooltip("Runner Tools")
                 .icon(logo)
                 .priority(10)
-                .panel(new Run4LessPanel())
+                .panel(panel)
                 .build();
-        clientToolbar.addNavigation(panel);
+        clientToolbar.addNavigation(button);
         updateLogo(getClass(), config.logoUrl());
+        panel.statPanel.update();
         super.startUp();
     }
 
@@ -122,10 +131,10 @@ public class Run4LessPlugin extends Plugin {
         overlayManager.remove(run4LessCCOverlay);
         overlayManager.remove(notificationOverlay);
         overlayManager.remove(run4LessHostOverlay);
-        clientToolbar.removeNavigation(panel);
+        clientToolbar.removeNavigation(button);
         menuManager.get().removePlayerMenuItem(setClient);
         configManager.setConfiguration("run4less", "clientName", "");
-        stats.updateRun("");
+        stats.endRun();
         updateSchedule.cancel(true);
         super.shutDown();
     }
@@ -138,7 +147,11 @@ public class Run4LessPlugin extends Plugin {
 
     private void SetHostUpdate() {
         if(config.hostEnabled() && updateSchedule == null) {
-            Runnable hostUpdate = () -> run4LessHostOverlay.init();
+            Runnable hostUpdate = () -> {
+                if(panel != null && panel.statPanel != null)
+                    panel.statPanel.update();
+                run4LessHostOverlay.init();
+            };
             ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
             updateSchedule = executorService.scheduleAtFixedRate(hostUpdate, 0, config.hostUpdate(), TimeUnit.SECONDS);
         }
@@ -179,6 +192,7 @@ public class Run4LessPlugin extends Plugin {
             }
             String sender = message.getName();
             if (!sender.isEmpty()) {
+                assert manager != null;
                 FriendsChatMember p = manager.findByName(sender);
                 if (p != null) {
                     FriendsChatRank rank = p.getRank();
@@ -200,37 +214,19 @@ public class Run4LessPlugin extends Plugin {
 
                     if (partnerTrades != null && offeredTrades != null) {
                         int i = 0;
-                        int coins = 0;
-                        int notes = 0;
                         int qty = 0;
                         String bones = "";
-                        String noted = "";
-                        for (Widget w : partnerTrades.getChildren()) {
-                            String text = w.getText();
-                            if (text.startsWith("Coins")) {
-                                if (text.contains("(")) text = text.split("[(]")[1];
-                                else text = text.split("<col=ffffff> x <col=ffff00>")[1];
-                                text = text.replace(",", "").replace(")", "");
-                                coins += Integer.parseInt(text);
-                            } else if (text.toLowerCase().contains("bones") && text.contains("<col=ffffff> x <col=ffff00>")) {
-                                String[] temp = text.split("<col=ffffff> x <col=ffff00>");
-                                noted = temp[0];
-                                notes = Integer.parseInt(temp[1]);
-                            } else if (text.toLowerCase().contains("bones")) {
-                                qty--;
-                            }
-                        }
-                        for (Widget w : offeredTrades.getChildren()) {
+                        for (Widget w : Objects.requireNonNull(offeredTrades.getChildren())) {
                             if (w == null) continue;
                             log.debug("[" + i++ + "]:" + w.getText());
                             String s = w.getText().toLowerCase();
-                            if (s.contains("bones") && !s.contains("<col=ffffff> x <col=ffff00>")) {
+                            boolean flag = s.contains("<col=ffffff> x <col=ffff00>");
+                            if (s.contains("bones") && !flag) {
                                 bones = w.getText();
                                 qty++;
                             }
                         }
-                        log.info("Adding Run");
-                        stats.addRun(rsn, bones, qty, coins, notes, noted);
+                        stats.addTrip(rsn, bones, qty);
                     }
                 }
             }
@@ -250,8 +246,6 @@ public class Run4LessPlugin extends Plugin {
     @Subscribe
     public void onConfigChanged(ConfigChanged event){
         if(event.getGroup().equals("bone dash")){
-
-
             if(config.splitCCEnabled()) {
                 final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
                 if(chat != null) run4LessCCOverlay.init(chat.getWidth());
@@ -261,7 +255,6 @@ public class Run4LessPlugin extends Plugin {
             }
             overlayManager.remove(run4LessOverlay);
             updateLogo(getClass(), config.logoUrl());
-            stats.updateRun(config.clientName());
         }
     }
 
@@ -300,17 +293,17 @@ public class Run4LessPlugin extends Plugin {
     @Subscribe
     public void onClientTick(final ClientTick clientTick) {
         if (client.getGameState() != GameState.LOGGED_IN || client.isMenuOpen()) return;
-        if(!panel.getIcon().equals(logo)) {
-            clientToolbar.removeNavigation(panel);
-            panel = NavigationButton.builder()
+        if(!button.getIcon().equals(logo)) {
+            clientToolbar.removeNavigation(button);
+            button = NavigationButton.builder()
                     .tooltip("Bone Calculator")
                     .icon(logo)
                     .priority(10)
-                    .panel(panel.getPanel())
+                    .panel(panel)
                     .build();
-            if (panel == null) log.info("Navigation was null");
+            if (button == null) log.info("Navigation was null");
             if (clientToolbar == null) log.info("ClientToolbar was null");
-            clientToolbar.addNavigation(panel);
+            clientToolbar.addNavigation(button);
         }
         if (config.offerAllEnabled()) {
                 final MenuEntry[] menuEntries = client.getMenuEntries();
@@ -367,6 +360,15 @@ public class Run4LessPlugin extends Plugin {
         if (event.getMenuOption().equals(setClient)){
             String name = event.getMenuTarget().split(" {2}\\(level-")[0];
             configManager.setConfiguration("run4less", "clientName", Text.removeTags(name));
+            panel.clientPanel.clientName.setText(Text.removeTags(name));
+        } else if(event.getMenuOption().equals(removeClient)) {
+            String target = event.getMenuTarget().split(" {2}\\(level-")[0];
+            String name = configManager.getConfiguration("run4less", "clientName");
+            if(!name.isEmpty() && target.equalsIgnoreCase(name)) {
+                configManager.setConfiguration("run4less", "clientName", "");
+                panel.clientPanel.clientName.setText("");
+                stats.endRun();
+            }
         }
     }
 
@@ -448,5 +450,29 @@ public class Run4LessPlugin extends Plugin {
         Connection connection = DriverManager.getConnection(url, username, password);
         Statement state = connection.createStatement();
         return state.executeQuery(query);
+    }
+
+    public static String formatTime(long seconds) {
+        long second = (seconds) % 60;
+        long minute = (seconds / 60) % 60;
+        long hour = (seconds / (60 * 60)) % 24;
+
+        return String.format("%02d:%02d:%02d", hour, minute, second);
+    }
+
+    public static String longToString(long number){
+        if(number >= 1000000000000000000L)
+            return String.format("%.2f", number/ 1000000000000000000.0) + " <font color='purple'>Qi</font>";
+        if(number >= 1000000000000000L)
+            return String.format("%.2f", number/ 1000000000000000.0) + " <font color='blue'>Qa</font>";
+        if(number >= 1000000000000L)
+            return String.format("%.2f", number/ 1000000000000.0) + " <font color='green'>T</font>";
+        if(number >= 1000000000)
+            return String.format("%.2f", number/ 1000000000.0) + " <font color='yellow'>B</font>";
+        if(number >= 1000000)
+            return String.format("%.2f", number/ 1000000.0) + " <font color='orange'>M</font>";
+        if(number >=1000)
+            return String.format("%.2f", number/ 1000.0) + " <font color='red'>K</font>";
+        return String.valueOf(number);
     }
 }

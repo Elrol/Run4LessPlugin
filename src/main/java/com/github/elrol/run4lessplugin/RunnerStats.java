@@ -4,76 +4,85 @@ import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
 
+import javax.annotation.Nullable;
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class RunnerStats {
 
     private static final File dataLoc = new File(RuneLite.RUNELITE_DIR, "/bonerunning_logs/");
-    Map<String, RunnerData> runHistory = new HashMap<>();
-    Map<String, Integer> bonesRan = new HashMap<>();
-    int totalMade;
-    RunData current;
+    public Map<String, RunnerData> runnerHistory = new HashMap<>();
+    RunnerData currentRun;
+    String dateLastRun;
 
     public RunnerStats(){
-        totalMade = 0;
     }
 
-    public void addRun(String client, String bones, int count, int coins, int notes, String noted){
-        RunnerData data = runHistory.getOrDefault(client, new RunnerData(client));
-        if(!bones.isEmpty() && count > 0) {
-            int qty = data.items.getOrDefault(bones, 0);
-            data.items.put(bones, qty + count);
-            qty = bonesRan.getOrDefault(client, 0);
-            bonesRan.put(client, qty + count);
-            if(current != null) current.ran(bones, count);
-        }
-        if(coins > 0){
-            totalMade += coins;
-            data.price += coins;
-        }
-        if(notes > 0 && !noted.isEmpty()){
-            int notedQty = data.notes.getOrDefault(noted, 0);
-            data.notes.put(noted, notedQty + notes);
-            if (current == null) {
-                current = new RunData(client, noted, notes);
-                updateRun(client);
-            } else {
-                if (current.client.equalsIgnoreCase(client)) {
-                    current.add(noted, notes);
-                    updateRun(client);
-                } else {
-                    updateRun(client);
-                    current = new RunData(client, noted, notes);
-                }
-            }
-        }
-        runHistory.put(client, data);
-        log.debug("Client: " + client + ", Bones: " + bones + ", Count: " + count + ", Coins: " + coins + ", Notes: " + notes + ", Noted: " + noted);
-        save();
+    public void startRun(String client, int costPerTrip, RunType type) {
+        if(currentRun != null) endRun();
+        currentRun = new RunnerData(client, LocalDateTime.now(), costPerTrip, type);
     }
 
-    public void updateRun(String client){
-        log.info("updating run");
-        if(current == null) return;
-        if(!current.client.equalsIgnoreCase(client) || !current.check()){
-            double now = System.currentTimeMillis();
-            log.info(String.valueOf(current.start));
-            log.info(String.valueOf(now));
-            log.info(String.valueOf(now - (double)current.start));
-            long seconds = Math.round((double)(System.currentTimeMillis() - current.start) / 60000D);
-            RunnerData data = runHistory.getOrDefault(client, new RunnerData(client));
-            data.totalTime += seconds;
-            runHistory.put(client, data);
-            //TODO Database info send
-            //Send all the data to the server here
-            log.info("time for run was: " + seconds + " seconds");
+    public void addTrip(String client, String bones, int count) {
+        if(bones.isEmpty() || client.isEmpty() || count <= 0) return;
+        if(currentRun.client.equalsIgnoreCase(client)) {
+            currentRun.addTrip(bones, count);
+            save();
         }
-        if(!current.check()) current = null;
-        save();
     }
+
+    public void endRun(){
+        currentRun.end();
+        runnerHistory.put(currentRun.startTime, currentRun);
+        dateLastRun = currentRun.endTime;
+        currentRun = null;
+        save();
+        Run4LessPlugin.panel.statPanel.updateStats();
+    }
+
+    public int getTotalBones() {
+        AtomicInteger total = new AtomicInteger();
+        runnerHistory.forEach((date, data) -> {
+            data.items.forEach((item, qty) -> {
+                total.addAndGet(qty);
+            });
+        });
+
+        if(currentRun != null) currentRun.items.forEach((item, qty) -> {
+            total.addAndGet(qty);
+        });
+
+        return total.get();
+    }
+
+    public int getTotalMade() {
+        AtomicInteger total = new AtomicInteger();
+        runnerHistory.forEach((date, data) -> {
+            total.addAndGet(data.totalPrice);
+        });
+
+        if(currentRun != null) total.addAndGet(currentRun.totalPrice);
+
+        return total.get();
+    }
+
+    @Nullable
+    public RunnerData getLastRun() {
+        if(runnerHistory.containsKey(dateLastRun)){
+            return runnerHistory.get(dateLastRun);
+        }
+        return null;
+    }
+
+    public static String dateToString(LocalDateTime date) {
+        return date.toString();
+    }
+
 
     public void save() {
         if(!dataLoc.exists()) dataLoc.mkdirs();
@@ -81,8 +90,10 @@ public class RunnerStats {
         try(FileWriter writer = new FileWriter(new File(dataLoc, "rundata.json"))) {
             if(Run4LessPlugin.INSTANCE == null) return;
             Gson gson = Run4LessPlugin.INSTANCE.gson;
-            if(gson != null)
-                gson.toJson(this, writer);
+            if(gson != null) {
+                String json= gson.toJson(Run4LessPlugin.stats);
+                gson.toJson(Run4LessPlugin.stats, RunnerStats.class, writer);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -93,31 +104,46 @@ public class RunnerStats {
         try {
             if(Run4LessPlugin.INSTANCE == null) return stats;
             Gson gson = Run4LessPlugin.INSTANCE.gson;
-            if(gson != null)
+            if(gson != null) {
                 stats = gson.fromJson(new FileReader(new File(dataLoc, "rundata.json")), RunnerStats.class);
+                Run4LessPanel panel = Run4LessPlugin.panel;
+                if(panel != null && panel.statPanel != null) {
+                    panel.statPanel.update();
+                }
+            }
         } catch (FileNotFoundException ignored) {}
         return stats;
     }
 
-    public int totalBones(){
-        int total = 0;
-        for(int i : bonesRan.values()){
-            total += i;
-        }
-        return total;
-    }
-
     public static class RunnerData {
         public String client;
+
+        public String startTime;
+        public String endTime;
         public Map<String, Integer> items = new HashMap<>();
-        public Map<String, Integer> notes = new HashMap<>();
+        public RunType type;
         public int price;
+        public int totalPrice = 0;
         public long totalTime;
 
-        public RunnerData(String client){
+        public RunnerData(String client, LocalDateTime startTime, int price, RunType type){
             this.client = client;
-            price = 0;
+            this.startTime = dateToString(startTime);
+            this.price = price;
+            this.type = type;
             totalTime = 0L;
+        }
+
+        public void addTrip(String item, int quantity) {
+            totalPrice += (price - (quantity * 5));
+            int total = items.getOrDefault(item, 0);
+            items.put(item, total + quantity);
+        }
+
+        public void end(){
+            LocalDateTime now = LocalDateTime.now();
+            totalTime = LocalDateTime.parse(startTime).until(now, ChronoUnit.SECONDS);
+            endTime = dateToString(now);
         }
     }
 
