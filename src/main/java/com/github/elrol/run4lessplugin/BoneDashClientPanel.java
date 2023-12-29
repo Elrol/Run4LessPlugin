@@ -1,5 +1,7 @@
 package com.github.elrol.run4lessplugin;
 
+import net.runelite.client.util.Text;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -91,7 +93,7 @@ public class BoneDashClientPanel extends JPanel {
                 String typeName = String.valueOf(runType.getSelectedItem());
 
                 if(!name.isEmpty() && price > 0 && qty > 0 && !typeName.equalsIgnoreCase("none")) {
-                    stats.startRun(clientName.getText(), price, RunType.valueOf(typeName));
+                    stats.startRun(Text.standardize(clientName.getText()), price, RunType.valueOf(typeName));
                     updateButton();
                 }
             } else {

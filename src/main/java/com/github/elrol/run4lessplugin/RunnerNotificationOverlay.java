@@ -33,9 +33,9 @@ public class RunnerNotificationOverlay extends Overlay {
     }
 
     public void clearText(){ text = ""; }
-    public boolean isNew(){ return text.equals(""); }
+    public boolean isNew(){ return text.isEmpty(); }
     public int scale(int base) {
-        float scale = 10.0f / 10.f;
+        float scale = 1.0f;
         return Math.round(scale * (float)base);
     }
 

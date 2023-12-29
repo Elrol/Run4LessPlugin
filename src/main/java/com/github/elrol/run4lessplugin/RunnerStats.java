@@ -3,6 +3,7 @@ package com.github.elrol.run4lessplugin;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.RuneLite;
+import net.runelite.client.util.Text;
 
 import javax.annotation.Nullable;
 import java.io.*;
@@ -30,7 +31,7 @@ public class RunnerStats {
 
     public void addTrip(String client, String bones, int count) {
         if(bones.isEmpty() || client.isEmpty() || count <= 0) return;
-        if(currentRun.client.equalsIgnoreCase(client)) {
+        if(currentRun.client.equalsIgnoreCase(Text.standardize(client))) {
             currentRun.addTrip(bones, count);
             save();
         }
@@ -86,7 +87,7 @@ public class RunnerStats {
 
     public void save() {
         if(!dataLoc.exists()) dataLoc.mkdirs();
-        log.debug("DataLoc: " + dataLoc.getAbsoluteFile());
+        //log.debug("DataLoc: " + dataLoc.getAbsoluteFile());
         try(FileWriter writer = new FileWriter(new File(dataLoc, "rundata.json"))) {
             if(Run4LessPlugin.INSTANCE == null) return;
             Gson gson = Run4LessPlugin.INSTANCE.gson;

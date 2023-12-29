@@ -8,6 +8,8 @@ import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.widgets.ComponentID;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
@@ -165,14 +167,15 @@ public class Run4LessPlugin extends Plugin {
 
         if (isRightClan() && message.getType().equals(ChatMessageType.FRIENDSCHAT)) {
             if (ccEnabled && ccLines > 0) {
-                final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
+
+                final Widget chat = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
                 if (chat != null && !chat.isHidden()) {
                     run4LessCCOverlay.init(chat.getWidth(), message);
                 }
             }
-            log.debug(message.getMessage());
+            //log.debug(message.getMessage());
             if (message.getMessage().toLowerCase().contains("!bones ")) {
-                log.debug("Ran bones command");
+                //log.debug("Ran bones command");
                 String cmd = message.getMessage().toLowerCase().split("!bones ")[1];
                 String[] temp = cmd.replace("!bones", "").split(" ");
                 int rate = 0;
@@ -188,7 +191,7 @@ public class Run4LessPlugin extends Plugin {
                 DecimalFormat formatter = new DecimalFormat("#,###");
                 String price = formatter.format(Math.round(((float) qty / 26F) * rate));
                 client.addChatMessage(message.getType(), message.getName(), temp[0] + "ing " + temp[1] + " bones would be " + price, message.getSender());
-                log.debug(temp[0] + "ing " + temp[1] + " bones would be " + price);
+                //log.debug(temp[0] + "ing " + temp[1] + " bones would be " + price);
             }
             String sender = message.getName();
             if (!sender.isEmpty()) {
@@ -207,18 +210,18 @@ public class Run4LessPlugin extends Plugin {
         if (message.getMessage().equalsIgnoreCase("accepted trade.") && config.enableStats()) {
             Widget tradingWith = client.getWidget(334, 30);
             if (tradingWith != null) {
-                String rsn = tradingWith.getText().replace("Trading with:<br>", "");
-                if (rsn.equalsIgnoreCase(config.clientName())) {
+                String rsn = Text.standardize(tradingWith.getText().replace("Trading with:<br>", ""));
+                String clientName = Text.standardize(config.clientName());
+                if (rsn.equalsIgnoreCase(clientName)) {
                     Widget partnerTrades = client.getWidget(334, 29);
                     Widget offeredTrades = client.getWidget(334, 28);
 
                     if (partnerTrades != null && offeredTrades != null) {
-                        int i = 0;
                         int qty = 0;
                         String bones = "";
                         for (Widget w : Objects.requireNonNull(offeredTrades.getChildren())) {
                             if (w == null) continue;
-                            log.debug("[" + i++ + "]:" + w.getText());
+                            //log.debug("[" + i++ + "]:" + w.getText());
                             String s = w.getText().toLowerCase();
                             boolean flag = s.contains("<col=ffffff> x <col=ffff00>");
                             if (s.contains("bones") && !flag) {
@@ -247,7 +250,7 @@ public class Run4LessPlugin extends Plugin {
     public void onConfigChanged(ConfigChanged event){
         if(event.getGroup().equals("bone dash")){
             if(config.splitCCEnabled()) {
-                final Widget chat = client.getWidget(WidgetInfo.CHATBOX_TRANSPARENT_LINES);
+                final Widget chat = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND_LINES);
                 if(chat != null) run4LessCCOverlay.init(chat.getWidth());
                 overlayManager.add(run4LessCCOverlay);
             } else {
@@ -265,6 +268,7 @@ public class Run4LessPlugin extends Plugin {
             Player player = client.getLocalPlayer();
             if(player != null && isRightClan()){
                 if(config.hostEnabled()) overlayManager.add(run4LessHostOverlay);
+                assert manager != null;
                 FriendsChatRank rank = manager.findByName(player.getName()).getRank();
                 if(rank.equals(FriendsChatRank.FRIEND)){
                     isHost = true;
@@ -301,8 +305,8 @@ public class Run4LessPlugin extends Plugin {
                     .priority(10)
                     .panel(panel)
                     .build();
-            if (button == null) log.info("Navigation was null");
-            if (clientToolbar == null) log.info("ClientToolbar was null");
+            //if (button == null) log.info("Navigation was null");
+            //if (clientToolbar == null) log.info("ClientToolbar was null");
             clientToolbar.addNavigation(button);
         }
         if (config.offerAllEnabled()) {
@@ -406,7 +410,7 @@ public class Run4LessPlugin extends Plugin {
     private void updateLogo(Class<?> c, String url){
         logo = ImageUtil.loadImageResource(c, "/OIG.png");
         overlayManager.remove(run4LessOverlay);
-        if(!url.equals("") && !url.equalsIgnoreCase("none")) {
+        if(!url.isEmpty() && !url.equalsIgnoreCase("none")) {
             //OkHttpClient client = new OkHttpClient();
 
             Request req = new Request.Builder().url(url).build();

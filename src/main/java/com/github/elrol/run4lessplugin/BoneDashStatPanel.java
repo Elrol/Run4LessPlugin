@@ -247,20 +247,20 @@ public class BoneDashStatPanel extends JPanel {
         c.weightx = c.weighty = 1.0;
         for (String bone : cur.items.keySet()) {
             int qty = cur.items.get(bone);
-
             JLabel boneName = new JLabel(bone.replace(" bones", ""));
-            JLabel boneQty = new JLabel("<html>" + Run4LessPlugin.longToString(qty));
+            JLabel boneQty = new JLabel("<HTML>" + Run4LessPlugin.longToString(qty));
             boneQty.setHorizontalAlignment(JLabel.RIGHT);
 
             c.gridx = 0;
-            cur_items.add(boneName, c);
+            last_items.add(boneName, c);
             c.gridx++;
-            cur_items.add(boneQty, c);
+            last_items.add(boneQty, c);
             c.gridy++;
         }
     }
 
     public void updateStats() {
+        update();
         RunnerStats stats = Run4LessPlugin.stats;
         if(stats == null) return;
 
